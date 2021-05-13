@@ -488,4 +488,4 @@ finalize xs opStack stack =
                 finalize rest (op :: nextOp :: restOps) (expr :: left :: right :: exprs)
 
         _ ->
-            Debug.todo "cases"
+            Null

@@ -105,7 +105,7 @@ evaluateStatement statement frames store =
         Return v ->
             case evaluateExpression v frames store of
                 Ok ( value, s ) ->
-                    Ok ( value, frames, store )
+                    Ok ( value, frames, s )
 
                 Err err ->
                     Err err
@@ -125,7 +125,7 @@ evaluateStatement statement frames store =
                     Err err
 
         _ ->
-            Debug.todo ""
+            Err "Unimplemented"
 
 
 lookupRef : String -> List Frame -> Maybe Int
@@ -199,38 +199,42 @@ evaluateExpression expression frames store =
         Call callee args ->
             case evaluateExpression callee frames store of
                 Ok ( Value.Function params ss closure, s ) ->
-                    let
-                        evalledArgs =
-                            List.foldr
-                                (\arg acc ->
-                                    case acc of
-                                        Ok ( rest, prevStore ) ->
-                                            case evaluateExpression arg frames prevStore of
-                                                Ok ( v, nextStore ) ->
-                                                    Ok ( Variable v :: rest, nextStore )
+                    if List.length params /= List.length args then
+                        Err "wrong number of args"
 
-                                                Err err ->
-                                                    Err err
+                    else
+                        let
+                            evalledArgs =
+                                List.foldr
+                                    (\arg acc ->
+                                        case acc of
+                                            Ok ( rest, prevStore ) ->
+                                                case evaluateExpression arg frames prevStore of
+                                                    Ok ( v, nextStore ) ->
+                                                        Ok ( Variable v :: rest, nextStore )
 
-                                        Err err ->
-                                            Err err
-                                )
-                                (Ok ( [], s ))
-                                args
-                    in
-                    case evalledArgs of
-                        Err err ->
-                            Err err
+                                                    Err err ->
+                                                        Err err
 
-                        Ok ( eas, newStore ) ->
-                            let
-                                nextStore =
-                                    Array.append newStore <| Array.fromList eas
+                                            Err err ->
+                                                Err err
+                                    )
+                                    (Ok ( [], s ))
+                                    args
+                        in
+                        case evalledArgs of
+                            Err err ->
+                                Err err
 
-                                functionFrame =
-                                    List.indexedMap (\i p -> ( p, i + Array.length newStore )) params |> Dict.fromList
-                            in
-                            evaluateStatements ss (functionFrame :: closure) nextStore
+                            Ok ( eas, newStore ) ->
+                                let
+                                    nextStore =
+                                        Array.append newStore <| Array.fromList eas
+
+                                    functionFrame =
+                                        List.indexedMap (\i p -> ( p, i + Array.length newStore )) params |> Dict.fromList
+                                in
+                                evaluateStatements ss (functionFrame :: closure) nextStore
 
                 Ok _ ->
                     Err "Not a function"
