@@ -6020,7 +6020,6 @@ var $elm$core$Array$set = F3(
 			A4($elm$core$Array$setHelp, startShift, index, value, tree),
 			tail));
 	});
-var $elm$core$Debug$todo = _Debug_todo;
 var $elm$core$Array$getHelp = F3(
 	function (shift, index, tree) {
 		getHelp:
@@ -6189,64 +6188,70 @@ var $author$project$Source$Interpreter$evaluateExpression = F3(
 						var ss = _v23.b;
 						var closure = _v23.c;
 						var s = _v22.b;
-						var evalledArgs = A3(
-							$elm$core$List$foldr,
-							F2(
-								function (arg, acc) {
-									if (acc.$ === 'Ok') {
-										var _v27 = acc.a;
-										var rest = _v27.a;
-										var prevStore = _v27.b;
-										var _v28 = A3($author$project$Source$Interpreter$evaluateExpression, arg, frames, prevStore);
-										if (_v28.$ === 'Ok') {
-											var _v29 = _v28.a;
-											var v = _v29.a;
-											var nextStore = _v29.b;
-											return $elm$core$Result$Ok(
-												_Utils_Tuple2(
-													A2(
-														$elm$core$List$cons,
-														$author$project$Source$Interpreter$Variable(v),
-														rest),
-													nextStore));
+						if (!_Utils_eq(
+							$elm$core$List$length(params),
+							$elm$core$List$length(args))) {
+							return $elm$core$Result$Err('wrong number of args');
+						} else {
+							var evalledArgs = A3(
+								$elm$core$List$foldr,
+								F2(
+									function (arg, acc) {
+										if (acc.$ === 'Ok') {
+											var _v27 = acc.a;
+											var rest = _v27.a;
+											var prevStore = _v27.b;
+											var _v28 = A3($author$project$Source$Interpreter$evaluateExpression, arg, frames, prevStore);
+											if (_v28.$ === 'Ok') {
+												var _v29 = _v28.a;
+												var v = _v29.a;
+												var nextStore = _v29.b;
+												return $elm$core$Result$Ok(
+													_Utils_Tuple2(
+														A2(
+															$elm$core$List$cons,
+															$author$project$Source$Interpreter$Variable(v),
+															rest),
+														nextStore));
+											} else {
+												var err = _v28.a;
+												return $elm$core$Result$Err(err);
+											}
 										} else {
-											var err = _v28.a;
+											var err = acc.a;
 											return $elm$core$Result$Err(err);
 										}
-									} else {
-										var err = acc.a;
-										return $elm$core$Result$Err(err);
-									}
-								}),
-							$elm$core$Result$Ok(
-								_Utils_Tuple2(_List_Nil, s)),
-							args);
-						if (evalledArgs.$ === 'Err') {
-							var err = evalledArgs.a;
-							return $elm$core$Result$Err(err);
-						} else {
-							var _v25 = evalledArgs.a;
-							var eas = _v25.a;
-							var newStore = _v25.b;
-							var nextStore = A2(
-								$elm$core$Array$append,
-								newStore,
-								$elm$core$Array$fromList(eas));
-							var functionFrame = $elm$core$Dict$fromList(
-								A2(
-									$elm$core$List$indexedMap,
-									F2(
-										function (i, p) {
-											return _Utils_Tuple2(
-												p,
-												i + $elm$core$Array$length(newStore));
-										}),
-									params));
-							return A3(
-								$author$project$Source$Interpreter$evaluateStatements,
-								ss,
-								A2($elm$core$List$cons, functionFrame, closure),
-								nextStore);
+									}),
+								$elm$core$Result$Ok(
+									_Utils_Tuple2(_List_Nil, s)),
+								args);
+							if (evalledArgs.$ === 'Err') {
+								var err = evalledArgs.a;
+								return $elm$core$Result$Err(err);
+							} else {
+								var _v25 = evalledArgs.a;
+								var eas = _v25.a;
+								var newStore = _v25.b;
+								var nextStore = A2(
+									$elm$core$Array$append,
+									newStore,
+									$elm$core$Array$fromList(eas));
+								var functionFrame = $elm$core$Dict$fromList(
+									A2(
+										$elm$core$List$indexedMap,
+										F2(
+											function (i, p) {
+												return _Utils_Tuple2(
+													p,
+													i + $elm$core$Array$length(newStore));
+											}),
+										params));
+								return A3(
+									$author$project$Source$Interpreter$evaluateStatements,
+									ss,
+									A2($elm$core$List$cons, functionFrame, closure),
+									nextStore);
+							}
 						}
 					} else {
 						return $elm$core$Result$Err('Not a function');
@@ -6483,7 +6488,7 @@ var $author$project$Source$Interpreter$evaluateStatement = F3(
 					var value = _v10.a;
 					var s = _v10.b;
 					return $elm$core$Result$Ok(
-						_Utils_Tuple3(value, frames, store));
+						_Utils_Tuple3(value, frames, s));
 				} else {
 					var err = _v9.a;
 					return $elm$core$Result$Err(err);
@@ -6514,12 +6519,7 @@ var $author$project$Source$Interpreter$evaluateStatement = F3(
 					return $elm$core$Result$Err(err);
 				}
 			default:
-				return _Debug_todo(
-					'Source.Interpreter',
-					{
-						start: {line: 128, column: 13},
-						end: {line: 128, column: 23}
-					})('');
+				return $elm$core$Result$Err('Unimplemented');
 		}
 	});
 var $author$project$Source$Interpreter$evaluateStatements = F3(
@@ -7391,6 +7391,7 @@ var $author$project$Source$Parser$closingNames = $elm$parser$Parser$sequence(
 var $author$project$Source$AST$BinaryOperation = function (a) {
 	return {$: 'BinaryOperation', a: a};
 };
+var $author$project$Source$AST$Null = {$: 'Null'};
 var $author$project$Source$Parser$isLowerPrecedenceHelp = F3(
 	function (left, right, xs) {
 		isLowerPrecedenceHelp:
@@ -7576,12 +7577,7 @@ var $author$project$Source$Parser$finalize = F3(
 					}
 				}
 			}
-			return _Debug_todo(
-				'Source.Parser',
-				{
-					start: {line: 491, column: 13},
-					end: {line: 491, column: 23}
-				})('cases');
+			return $author$project$Source$AST$Null;
 		}
 	});
 var $elm$parser$Parser$ExpectingKeyword = function (a) {
@@ -7661,7 +7657,6 @@ var $author$project$Source$Parser$noLineTerminator = $elm$parser$Parser$chompWhi
 			c,
 			_Utils_chr('\t'));
 	});
-var $author$project$Source$AST$Null = {$: 'Null'};
 var $author$project$Source$Parser$null = A2(
 	$elm$parser$Parser$ignorer,
 	$elm$parser$Parser$succeed($author$project$Source$AST$Null),
