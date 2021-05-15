@@ -62,16 +62,6 @@ unsafeGet index arr =
             v
 
 
-unsafeHead : List a -> a
-unsafeHead xs =
-    case xs of
-        [] ->
-            unsafeHead xs
-
-        x :: _ ->
-            x
-
-
 evaluateStatement : Statement -> List Frame -> Store -> Result String ( Value, List Frame, Store )
 evaluateStatement statement frames store =
     let
@@ -334,6 +324,20 @@ evaluateExpression expression frames store =
 
                     Err err ->
                         Err err
+
+        ConditionalExpression { test, consequent, alternate } ->
+            case evaluateExpression test frames store of
+                Ok ( Value.Boolean True, nextStore ) ->
+                    evaluateExpression consequent frames nextStore
+
+                Ok ( Value.Boolean False, nextStore ) ->
+                    evaluateExpression alternate frames nextStore
+
+                Ok _ ->
+                    Err "test condition must be bool"
+
+                Err err ->
+                    Err err
 
 
 binaryOperatorFunction : BinaryOperator -> (Value -> Value -> Result String Value)

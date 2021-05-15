@@ -31,6 +31,7 @@ type Expression
     | ArrowFunctionExpressionBlockBody (List String) (List Statement)
     | UnaryOperation UnaryOperator Expression
     | BinaryOperation { operator : BinaryOperator, left : Expression, right : Expression }
+    | ConditionalExpression { test : Expression, consequent : Expression, alternate : Expression }
 
 
 type UnaryOperator
@@ -47,8 +48,6 @@ type BinaryOperator
     | AndOp
     | OrOp
     | AssignmentOp
-    | TernaryLeftOp
-    | TernaryRightOp
     | EqualsOp
     | NotEqualsOp
     | LessThanOp

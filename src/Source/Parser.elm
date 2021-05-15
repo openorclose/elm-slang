@@ -402,28 +402,57 @@ expressionHelp revOps expr =
                 |. spaces
                 |= factor
                 |> andThen (\( op, newExpr ) -> expressionHelp (( expr, op ) :: revOps) newExpr)
+            , succeed (\c a -> ConditionalExpression { test = expr, consequent = c, alternate = a })
+                |. symbol "?"
+                |. spaces
+                |= lazy (\_ -> expression)
+                |. spaces
+                |. symbol ":"
+                |. spaces
+                |= lazy (\_ -> expression)
             , lazy (\_ -> succeed (finalize revOps [] [ expr ]))
             ]
 
 
-isLowerPrecedence left right =
-    isLowerPrecedenceHelp left right precedences
+comparePrecedences left right =
+    comparePrecedencesHelp left right precedences
 
 
-isLowerPrecedenceHelp left right xs =
+comparePrecedencesHelp left right xs =
     case xs of
         [] ->
-            isLowerPrecedenceHelp left right []
+            EQ
 
         head :: tail ->
-            if List.any ((==) left) head then
-                False
+            case ( List.any ((==) left) head, List.any ((==) right) head ) of
+                ( True, True ) ->
+                    EQ
 
-            else if List.any ((==) right) head then
-                True
+                ( False, True ) ->
+                    LT
 
-            else
-                isLowerPrecedenceHelp left right tail
+                ( True, False ) ->
+                    GT
+
+                ( False, False ) ->
+                    comparePrecedencesHelp left right tail
+
+
+type Associativity
+    = Left
+    | Right
+
+
+rightAssociative =
+    [ AndOp, OrOp ]
+
+
+associativity op =
+    if List.any ((==) op) rightAssociative then
+        Right
+
+    else
+        Left
 
 
 precedences =
@@ -433,7 +462,6 @@ precedences =
     , [ EqualsOp, NotEqualsOp ]
     , [ AndOp ]
     , [ OrOp ]
-    , [ TernaryLeftOp, TernaryRightOp ]
     , [ AssignmentOp ]
     ]
 
@@ -455,8 +483,6 @@ operator =
         , succeed AssignmentOp |. symbol "="
         , succeed OrOp |. symbol "||"
         , succeed AndOp |. symbol "&&"
-        , succeed TernaryLeftOp |. symbol "?"
-        , succeed TernaryRightOp |. symbol ":"
         ]
 
 
@@ -473,19 +499,36 @@ finalize xs opStack stack =
             finalize rest [ op ] (expr :: exprs)
 
         ( (( expr, op ) :: rest) as prevs, nextOp :: restOps, left :: right :: exprs ) ->
-            if isLowerPrecedence op nextOp then
-                finalize prevs
-                    restOps
-                    (BinaryOperation
-                        { operator = nextOp
-                        , left = left
-                        , right = right
-                        }
-                        :: exprs
-                    )
+            case comparePrecedences op nextOp of
+                LT ->
+                    finalize prevs
+                        restOps
+                        (BinaryOperation
+                            { operator = nextOp
+                            , left = left
+                            , right = right
+                            }
+                            :: exprs
+                        )
 
-            else
-                finalize rest (op :: nextOp :: restOps) (expr :: left :: right :: exprs)
+                EQ ->
+                    case associativity op of
+                        Left ->
+                            finalize rest (op :: nextOp :: restOps) (expr :: left :: right :: exprs)
+
+                        Right ->
+                            finalize prevs
+                                restOps
+                                (BinaryOperation
+                                    { operator = nextOp
+                                    , left = left
+                                    , right = right
+                                    }
+                                    :: exprs
+                                )
+
+                GT ->
+                    finalize rest (op :: nextOp :: restOps) (expr :: left :: right :: exprs)
 
         _ ->
             Null
