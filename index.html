@@ -6081,359 +6081,397 @@ var $elm$core$Maybe$withDefault = F2(
 	});
 var $author$project$Source$Interpreter$evaluateExpression = F3(
 	function (expression, frames, store) {
-		switch (expression.$) {
-			case 'Number':
-				var n = expression.a;
-				return $elm$core$Result$Ok(
-					_Utils_Tuple2(
-						$author$project$Source$Value$Number(n),
-						store));
-			case 'Boolean':
-				var bool = expression.a;
-				return $elm$core$Result$Ok(
-					_Utils_Tuple2(
-						$author$project$Source$Value$Boolean(bool),
-						store));
-			case 'JsString':
-				var string = expression.a;
-				return $elm$core$Result$Ok(
-					_Utils_Tuple2(
-						$author$project$Source$Value$String(string),
-						store));
-			case 'Identifier':
-				var string = expression.a;
-				var _v16 = A2($author$project$Source$Interpreter$lookupRef, string, frames);
-				if (_v16.$ === 'Just') {
-					var ref = _v16.a;
-					var _v17 = A2($author$project$Source$Interpreter$unsafeGet, ref, store);
-					switch (_v17.$) {
-						case 'Constant':
-							var val = _v17.a;
-							return $elm$core$Result$Ok(
-								_Utils_Tuple2(val, store));
-						case 'Variable':
-							var val = _v17.a;
-							return $elm$core$Result$Ok(
-								_Utils_Tuple2(val, store));
-						default:
-							return $elm$core$Result$Err('Accessing var before decl');
+		evaluateExpression:
+		while (true) {
+			switch (expression.$) {
+				case 'Number':
+					var n = expression.a;
+					return $elm$core$Result$Ok(
+						_Utils_Tuple2(
+							$author$project$Source$Value$Number(n),
+							store));
+				case 'Boolean':
+					var bool = expression.a;
+					return $elm$core$Result$Ok(
+						_Utils_Tuple2(
+							$author$project$Source$Value$Boolean(bool),
+							store));
+				case 'JsString':
+					var string = expression.a;
+					return $elm$core$Result$Ok(
+						_Utils_Tuple2(
+							$author$project$Source$Value$String(string),
+							store));
+				case 'Identifier':
+					var string = expression.a;
+					var _v16 = A2($author$project$Source$Interpreter$lookupRef, string, frames);
+					if (_v16.$ === 'Just') {
+						var ref = _v16.a;
+						var _v17 = A2($author$project$Source$Interpreter$unsafeGet, ref, store);
+						switch (_v17.$) {
+							case 'Constant':
+								var val = _v17.a;
+								return $elm$core$Result$Ok(
+									_Utils_Tuple2(val, store));
+							case 'Variable':
+								var val = _v17.a;
+								return $elm$core$Result$Ok(
+									_Utils_Tuple2(val, store));
+							default:
+								return $elm$core$Result$Err('Accessing var before decl');
+						}
+					} else {
+						return $elm$core$Result$Err('Undeclared name');
 					}
-				} else {
-					return $elm$core$Result$Err('Undeclared name');
-				}
-			case 'Null':
-				return $elm$core$Result$Ok(
-					_Utils_Tuple2($author$project$Source$Value$Null, store));
-			case 'JsArray':
-				var elements = expression.a;
-				var helper = F3(
-					function (remaining, revFinal, innerStore) {
-						helper:
-						while (true) {
-							if (!remaining.b) {
-								return A2(
-									$elm$core$Result$map,
-									function (xs) {
-										return _Utils_Tuple2(
-											$author$project$Source$Value$Array(
-												$elm$core$List$reverse(xs)),
-											innerStore);
-									},
-									revFinal);
-							} else {
-								var x = remaining.a;
-								var xs = remaining.b;
-								var _v19 = _Utils_Tuple2(
-									revFinal,
-									A3($author$project$Source$Interpreter$evaluateExpression, x, frames, innerStore));
-								if (_v19.b.$ === 'Err') {
-									var err = _v19.b.a;
-									return $elm$core$Result$Err(err);
+				case 'Null':
+					return $elm$core$Result$Ok(
+						_Utils_Tuple2($author$project$Source$Value$Null, store));
+				case 'JsArray':
+					var elements = expression.a;
+					var helper = F3(
+						function (remaining, revFinal, innerStore) {
+							helper:
+							while (true) {
+								if (!remaining.b) {
+									return A2(
+										$elm$core$Result$map,
+										function (xs) {
+											return _Utils_Tuple2(
+												$author$project$Source$Value$Array(
+													$elm$core$List$reverse(xs)),
+												innerStore);
+										},
+										revFinal);
 								} else {
-									if (_v19.a.$ === 'Err') {
-										var err = _v19.a.a;
+									var x = remaining.a;
+									var xs = remaining.b;
+									var _v19 = _Utils_Tuple2(
+										revFinal,
+										A3($author$project$Source$Interpreter$evaluateExpression, x, frames, innerStore));
+									if (_v19.b.$ === 'Err') {
+										var err = _v19.b.a;
 										return $elm$core$Result$Err(err);
 									} else {
-										var otherRevFinals = _v19.a.a;
-										var _v20 = _v19.b.a;
-										var v = _v20.a;
-										var s = _v20.b;
-										var $temp$remaining = xs,
-											$temp$revFinal = $elm$core$Result$Ok(
-											A2($elm$core$List$cons, v, otherRevFinals)),
-											$temp$innerStore = s;
-										remaining = $temp$remaining;
-										revFinal = $temp$revFinal;
-										innerStore = $temp$innerStore;
-										continue helper;
+										if (_v19.a.$ === 'Err') {
+											var err = _v19.a.a;
+											return $elm$core$Result$Err(err);
+										} else {
+											var otherRevFinals = _v19.a.a;
+											var _v20 = _v19.b.a;
+											var v = _v20.a;
+											var s = _v20.b;
+											var $temp$remaining = xs,
+												$temp$revFinal = $elm$core$Result$Ok(
+												A2($elm$core$List$cons, v, otherRevFinals)),
+												$temp$innerStore = s;
+											remaining = $temp$remaining;
+											revFinal = $temp$revFinal;
+											innerStore = $temp$innerStore;
+											continue helper;
+										}
 									}
 								}
 							}
-						}
-					});
-				return A3(
-					helper,
-					elements,
-					$elm$core$Result$Ok(_List_Nil),
-					store);
-			case 'Call':
-				var callee = expression.a;
-				var args = expression.b;
-				var _v21 = A3($author$project$Source$Interpreter$evaluateExpression, callee, frames, store);
-				if (_v21.$ === 'Ok') {
-					if (_v21.a.a.$ === 'Function') {
-						var _v22 = _v21.a;
-						var _v23 = _v22.a;
-						var params = _v23.a;
-						var ss = _v23.b;
-						var closure = _v23.c;
-						var s = _v22.b;
-						if (!_Utils_eq(
-							$elm$core$List$length(params),
-							$elm$core$List$length(args))) {
-							return $elm$core$Result$Err('wrong number of args');
-						} else {
-							var evalledArgs = A3(
-								$elm$core$List$foldr,
-								F2(
-									function (arg, acc) {
-										if (acc.$ === 'Ok') {
-											var _v27 = acc.a;
-											var rest = _v27.a;
-											var prevStore = _v27.b;
-											var _v28 = A3($author$project$Source$Interpreter$evaluateExpression, arg, frames, prevStore);
-											if (_v28.$ === 'Ok') {
-												var _v29 = _v28.a;
-												var v = _v29.a;
-												var nextStore = _v29.b;
-												return $elm$core$Result$Ok(
-													_Utils_Tuple2(
-														A2(
-															$elm$core$List$cons,
-															$author$project$Source$Interpreter$Variable(v),
-															rest),
-														nextStore));
+						});
+					return A3(
+						helper,
+						elements,
+						$elm$core$Result$Ok(_List_Nil),
+						store);
+				case 'Call':
+					var callee = expression.a;
+					var args = expression.b;
+					var _v21 = A3($author$project$Source$Interpreter$evaluateExpression, callee, frames, store);
+					if (_v21.$ === 'Ok') {
+						if (_v21.a.a.$ === 'Function') {
+							var _v22 = _v21.a;
+							var _v23 = _v22.a;
+							var params = _v23.a;
+							var ss = _v23.b;
+							var closure = _v23.c;
+							var s = _v22.b;
+							if (!_Utils_eq(
+								$elm$core$List$length(params),
+								$elm$core$List$length(args))) {
+								return $elm$core$Result$Err('wrong number of args');
+							} else {
+								var evalledArgs = A3(
+									$elm$core$List$foldr,
+									F2(
+										function (arg, acc) {
+											if (acc.$ === 'Ok') {
+												var _v27 = acc.a;
+												var rest = _v27.a;
+												var prevStore = _v27.b;
+												var _v28 = A3($author$project$Source$Interpreter$evaluateExpression, arg, frames, prevStore);
+												if (_v28.$ === 'Ok') {
+													var _v29 = _v28.a;
+													var v = _v29.a;
+													var nextStore = _v29.b;
+													return $elm$core$Result$Ok(
+														_Utils_Tuple2(
+															A2(
+																$elm$core$List$cons,
+																$author$project$Source$Interpreter$Variable(v),
+																rest),
+															nextStore));
+												} else {
+													var err = _v28.a;
+													return $elm$core$Result$Err(err);
+												}
 											} else {
-												var err = _v28.a;
+												var err = acc.a;
 												return $elm$core$Result$Err(err);
 											}
-										} else {
-											var err = acc.a;
-											return $elm$core$Result$Err(err);
-										}
-									}),
-								$elm$core$Result$Ok(
-									_Utils_Tuple2(_List_Nil, s)),
-								args);
-							if (evalledArgs.$ === 'Err') {
-								var err = evalledArgs.a;
-								return $elm$core$Result$Err(err);
-							} else {
-								var _v25 = evalledArgs.a;
-								var eas = _v25.a;
-								var newStore = _v25.b;
-								var nextStore = A2(
-									$elm$core$Array$append,
-									newStore,
-									$elm$core$Array$fromList(eas));
-								var functionFrame = $elm$core$Dict$fromList(
-									A2(
-										$elm$core$List$indexedMap,
-										F2(
-											function (i, p) {
-												return _Utils_Tuple2(
-													p,
-													i + $elm$core$Array$length(newStore));
-											}),
-										params));
-								return A3(
-									$author$project$Source$Interpreter$evaluateStatements,
-									ss,
-									A2($elm$core$List$cons, functionFrame, closure),
-									nextStore);
-							}
-						}
-					} else {
-						return $elm$core$Result$Err('Not a function');
-					}
-				} else {
-					var err = _v21.a;
-					return $elm$core$Result$Err(err);
-				}
-			case 'PropertyAccess':
-				var object = expression.a.object;
-				var property = expression.a.property;
-				var _v30 = A3($author$project$Source$Interpreter$evaluateExpression, object, frames, store);
-				if (_v30.$ === 'Ok') {
-					if (_v30.a.a.$ === 'Array') {
-						var _v31 = _v30.a;
-						var arr = _v31.a.a;
-						var newStore = _v31.b;
-						var _v32 = A3($author$project$Source$Interpreter$evaluateExpression, property, frames, newStore);
-						if (_v32.$ === 'Ok') {
-							if (_v32.a.a.$ === 'Number') {
-								var _v33 = _v32.a;
-								var index = _v33.a.a;
-								var finalStore = _v33.b;
-								if (_Utils_eq(
-									$elm$core$Basics$round(index),
-									index) && (index >= 0)) {
-									var _v34 = A2(
-										$elm$core$List$drop,
-										$elm$core$Basics$round(index),
-										arr);
-									if (!_v34.b) {
-										return $elm$core$Result$Ok(
-											_Utils_Tuple2($author$project$Source$Value$Undefined, finalStore));
-									} else {
-										var x = _v34.a;
-										return $elm$core$Result$Ok(
-											_Utils_Tuple2(x, finalStore));
-									}
+										}),
+									$elm$core$Result$Ok(
+										_Utils_Tuple2(_List_Nil, s)),
+									args);
+								if (evalledArgs.$ === 'Err') {
+									var err = evalledArgs.a;
+									return $elm$core$Result$Err(err);
 								} else {
-									return $elm$core$Result$Err('Array index must be int');
+									var _v25 = evalledArgs.a;
+									var eas = _v25.a;
+									var newStore = _v25.b;
+									var nextStore = A2(
+										$elm$core$Array$append,
+										newStore,
+										$elm$core$Array$fromList(eas));
+									var functionFrame = $elm$core$Dict$fromList(
+										A2(
+											$elm$core$List$indexedMap,
+											F2(
+												function (i, p) {
+													return _Utils_Tuple2(
+														p,
+														i + $elm$core$Array$length(newStore));
+												}),
+											params));
+									return A3(
+										$author$project$Source$Interpreter$evaluateStatements,
+										ss,
+										A2($elm$core$List$cons, functionFrame, closure),
+										nextStore);
 								}
-							} else {
-								var _v35 = _v32.a;
-								return $elm$core$Result$Err('array index must be int');
 							}
 						} else {
-							var err = _v32.a;
-							return $elm$core$Result$Err(err);
+							return $elm$core$Result$Err('Not a function');
 						}
 					} else {
-						return $elm$core$Result$Err('needs to be an array');
-					}
-				} else {
-					var err = _v30.a;
-					return $elm$core$Result$Err(err);
-				}
-			case 'ArrowFunctionExpression':
-				var strings = expression.a;
-				var body = expression.b;
-				return $elm$core$Result$Ok(
-					_Utils_Tuple2(
-						A3(
-							$author$project$Source$Value$Function,
-							strings,
-							_List_fromArray(
-								[
-									$author$project$Source$AST$Return(body)
-								]),
-							frames),
-						store));
-			case 'ArrowFunctionExpressionBlockBody':
-				var strings = expression.a;
-				var statements = expression.b;
-				return $elm$core$Result$Ok(
-					_Utils_Tuple2(
-						A3($author$project$Source$Value$Function, strings, statements, frames),
-						store));
-			case 'UnaryOperation':
-				var operator = expression.a;
-				var argument = expression.b;
-				var _v36 = A3($author$project$Source$Interpreter$evaluateExpression, argument, frames, store);
-				if (_v36.$ === 'Ok') {
-					var _v37 = _v36.a;
-					var evalledArg = _v37.a;
-					var nextStore = _v37.b;
-					var _v38 = _Utils_Tuple2(operator, evalledArg);
-					if (_v38.a.$ === 'UnaryNegation') {
-						if (_v38.b.$ === 'Number') {
-							var _v39 = _v38.a;
-							var arg = _v38.b.a;
-							return $elm$core$Result$Ok(
-								_Utils_Tuple2(
-									$author$project$Source$Value$Number(-arg),
-									nextStore));
-						} else {
-							var _v40 = _v38.a;
-							return $elm$core$Result$Err('unary - only takes in number as arg');
-						}
-					} else {
-						if (_v38.b.$ === 'Boolean') {
-							var _v41 = _v38.a;
-							var arg = _v38.b.a;
-							return $elm$core$Result$Ok(
-								_Utils_Tuple2(
-									$author$project$Source$Value$Boolean(!arg),
-									nextStore));
-						} else {
-							var _v42 = _v38.a;
-							return $elm$core$Result$Err('! only takes in boolean as arg');
-						}
-					}
-				} else {
-					var err = _v36.a;
-					return $elm$core$Result$Err(err);
-				}
-			default:
-				var operator = expression.a.operator;
-				var left = expression.a.left;
-				var right = expression.a.right;
-				if (_Utils_eq(operator, $author$project$Source$AST$AssignmentOp)) {
-					if (left.$ === 'Identifier') {
-						var id = left.a;
-						var _v44 = A2($author$project$Source$Interpreter$lookupRef, id, frames);
-						if (_v44.$ === 'Nothing') {
-							return $elm$core$Result$Err('undeclared name');
-						} else {
-							var ref = _v44.a;
-							var _v45 = A3($author$project$Source$Interpreter$evaluateExpression, right, frames, store);
-							if (_v45.$ === 'Ok') {
-								var _v46 = _v45.a;
-								var value = _v46.a;
-								var nextStore = _v46.b;
-								var _v47 = A2($author$project$Source$Interpreter$unsafeGet, ref, nextStore);
-								switch (_v47.$) {
-									case 'Uninitialized':
-										return $elm$core$Result$Err('Cannot access before init');
-									case 'Constant':
-										return $elm$core$Result$Err('Cannot assign to constant');
-									default:
-										return $elm$core$Result$Ok(
-											_Utils_Tuple2(
-												value,
-												A3(
-													$elm$core$Array$set,
-													ref,
-													$author$project$Source$Interpreter$Variable(value),
-													nextStore)));
-								}
-							} else {
-								var err = _v45.a;
-								return $elm$core$Result$Err('unreachable');
-							}
-						}
-					} else {
-						return $elm$core$Result$Err('wrong LHS for =');
-					}
-				} else {
-					var _v48 = A3($author$project$Source$Interpreter$evaluateExpression, left, frames, store);
-					if (_v48.$ === 'Ok') {
-						var _v49 = _v48.a;
-						var leftValue = _v49.a;
-						var leftStore = _v49.b;
-						var _v50 = A3($author$project$Source$Interpreter$evaluateExpression, right, frames, leftStore);
-						if (_v50.$ === 'Ok') {
-							var _v51 = _v50.a;
-							var rightValue = _v51.a;
-							var rightStore = _v51.b;
-							return A2(
-								$elm$core$Result$map,
-								function (r) {
-									return _Utils_Tuple2(r, rightStore);
-								},
-								A3($author$project$Source$Interpreter$binaryOperatorFunction, operator, leftValue, rightValue));
-						} else {
-							var err = _v50.a;
-							return $elm$core$Result$Err(err);
-						}
-					} else {
-						var err = _v48.a;
+						var err = _v21.a;
 						return $elm$core$Result$Err(err);
 					}
-				}
+				case 'PropertyAccess':
+					var object = expression.a.object;
+					var property = expression.a.property;
+					var _v30 = A3($author$project$Source$Interpreter$evaluateExpression, object, frames, store);
+					if (_v30.$ === 'Ok') {
+						if (_v30.a.a.$ === 'Array') {
+							var _v31 = _v30.a;
+							var arr = _v31.a.a;
+							var newStore = _v31.b;
+							var _v32 = A3($author$project$Source$Interpreter$evaluateExpression, property, frames, newStore);
+							if (_v32.$ === 'Ok') {
+								if (_v32.a.a.$ === 'Number') {
+									var _v33 = _v32.a;
+									var index = _v33.a.a;
+									var finalStore = _v33.b;
+									if (_Utils_eq(
+										$elm$core$Basics$round(index),
+										index) && (index >= 0)) {
+										var _v34 = A2(
+											$elm$core$List$drop,
+											$elm$core$Basics$round(index),
+											arr);
+										if (!_v34.b) {
+											return $elm$core$Result$Ok(
+												_Utils_Tuple2($author$project$Source$Value$Undefined, finalStore));
+										} else {
+											var x = _v34.a;
+											return $elm$core$Result$Ok(
+												_Utils_Tuple2(x, finalStore));
+										}
+									} else {
+										return $elm$core$Result$Err('Array index must be int');
+									}
+								} else {
+									var _v35 = _v32.a;
+									return $elm$core$Result$Err('array index must be int');
+								}
+							} else {
+								var err = _v32.a;
+								return $elm$core$Result$Err(err);
+							}
+						} else {
+							return $elm$core$Result$Err('needs to be an array');
+						}
+					} else {
+						var err = _v30.a;
+						return $elm$core$Result$Err(err);
+					}
+				case 'ArrowFunctionExpression':
+					var strings = expression.a;
+					var body = expression.b;
+					return $elm$core$Result$Ok(
+						_Utils_Tuple2(
+							A3(
+								$author$project$Source$Value$Function,
+								strings,
+								_List_fromArray(
+									[
+										$author$project$Source$AST$Return(body)
+									]),
+								frames),
+							store));
+				case 'ArrowFunctionExpressionBlockBody':
+					var strings = expression.a;
+					var statements = expression.b;
+					return $elm$core$Result$Ok(
+						_Utils_Tuple2(
+							A3($author$project$Source$Value$Function, strings, statements, frames),
+							store));
+				case 'UnaryOperation':
+					var operator = expression.a;
+					var argument = expression.b;
+					var _v36 = A3($author$project$Source$Interpreter$evaluateExpression, argument, frames, store);
+					if (_v36.$ === 'Ok') {
+						var _v37 = _v36.a;
+						var evalledArg = _v37.a;
+						var nextStore = _v37.b;
+						var _v38 = _Utils_Tuple2(operator, evalledArg);
+						if (_v38.a.$ === 'UnaryNegation') {
+							if (_v38.b.$ === 'Number') {
+								var _v39 = _v38.a;
+								var arg = _v38.b.a;
+								return $elm$core$Result$Ok(
+									_Utils_Tuple2(
+										$author$project$Source$Value$Number(-arg),
+										nextStore));
+							} else {
+								var _v40 = _v38.a;
+								return $elm$core$Result$Err('unary - only takes in number as arg');
+							}
+						} else {
+							if (_v38.b.$ === 'Boolean') {
+								var _v41 = _v38.a;
+								var arg = _v38.b.a;
+								return $elm$core$Result$Ok(
+									_Utils_Tuple2(
+										$author$project$Source$Value$Boolean(!arg),
+										nextStore));
+							} else {
+								var _v42 = _v38.a;
+								return $elm$core$Result$Err('! only takes in boolean as arg');
+							}
+						}
+					} else {
+						var err = _v36.a;
+						return $elm$core$Result$Err(err);
+					}
+				case 'BinaryOperation':
+					var operator = expression.a.operator;
+					var left = expression.a.left;
+					var right = expression.a.right;
+					if (_Utils_eq(operator, $author$project$Source$AST$AssignmentOp)) {
+						if (left.$ === 'Identifier') {
+							var id = left.a;
+							var _v44 = A2($author$project$Source$Interpreter$lookupRef, id, frames);
+							if (_v44.$ === 'Nothing') {
+								return $elm$core$Result$Err('undeclared name');
+							} else {
+								var ref = _v44.a;
+								var _v45 = A3($author$project$Source$Interpreter$evaluateExpression, right, frames, store);
+								if (_v45.$ === 'Ok') {
+									var _v46 = _v45.a;
+									var value = _v46.a;
+									var nextStore = _v46.b;
+									var _v47 = A2($author$project$Source$Interpreter$unsafeGet, ref, nextStore);
+									switch (_v47.$) {
+										case 'Uninitialized':
+											return $elm$core$Result$Err('Cannot access before init');
+										case 'Constant':
+											return $elm$core$Result$Err('Cannot assign to constant');
+										default:
+											return $elm$core$Result$Ok(
+												_Utils_Tuple2(
+													value,
+													A3(
+														$elm$core$Array$set,
+														ref,
+														$author$project$Source$Interpreter$Variable(value),
+														nextStore)));
+									}
+								} else {
+									var err = _v45.a;
+									return $elm$core$Result$Err('unreachable');
+								}
+							}
+						} else {
+							return $elm$core$Result$Err('wrong LHS for =');
+						}
+					} else {
+						var _v48 = A3($author$project$Source$Interpreter$evaluateExpression, left, frames, store);
+						if (_v48.$ === 'Ok') {
+							var _v49 = _v48.a;
+							var leftValue = _v49.a;
+							var leftStore = _v49.b;
+							var _v50 = A3($author$project$Source$Interpreter$evaluateExpression, right, frames, leftStore);
+							if (_v50.$ === 'Ok') {
+								var _v51 = _v50.a;
+								var rightValue = _v51.a;
+								var rightStore = _v51.b;
+								return A2(
+									$elm$core$Result$map,
+									function (r) {
+										return _Utils_Tuple2(r, rightStore);
+									},
+									A3($author$project$Source$Interpreter$binaryOperatorFunction, operator, leftValue, rightValue));
+							} else {
+								var err = _v50.a;
+								return $elm$core$Result$Err(err);
+							}
+						} else {
+							var err = _v48.a;
+							return $elm$core$Result$Err(err);
+						}
+					}
+				default:
+					var test = expression.a.test;
+					var consequent = expression.a.consequent;
+					var alternate = expression.a.alternate;
+					var _v52 = A3($author$project$Source$Interpreter$evaluateExpression, test, frames, store);
+					if (_v52.$ === 'Ok') {
+						if (_v52.a.a.$ === 'Boolean') {
+							if (_v52.a.a.a) {
+								var _v53 = _v52.a;
+								var nextStore = _v53.b;
+								var $temp$expression = consequent,
+									$temp$frames = frames,
+									$temp$store = nextStore;
+								expression = $temp$expression;
+								frames = $temp$frames;
+								store = $temp$store;
+								continue evaluateExpression;
+							} else {
+								var _v54 = _v52.a;
+								var nextStore = _v54.b;
+								var $temp$expression = alternate,
+									$temp$frames = frames,
+									$temp$store = nextStore;
+								expression = $temp$expression;
+								frames = $temp$frames;
+								store = $temp$store;
+								continue evaluateExpression;
+							}
+						} else {
+							return $elm$core$Result$Err('test condition must be bool');
+						}
+					} else {
+						var err = _v52.a;
+						return $elm$core$Result$Err(err);
+					}
+			}
 		}
 	});
 var $author$project$Source$Interpreter$evaluateStatement = F3(
@@ -6817,6 +6855,9 @@ var $author$project$Source$AST$Call = F2(
 	function (a, b) {
 		return {$: 'Call', a: a, b: b};
 	});
+var $author$project$Source$AST$ConditionalExpression = function (a) {
+	return {$: 'ConditionalExpression', a: a};
+};
 var $author$project$Source$AST$Const = {$: 'Const'};
 var $author$project$Source$AST$Continue = {$: 'Continue'};
 var $author$project$Source$AST$Declaration = F3(
@@ -7392,32 +7433,45 @@ var $author$project$Source$AST$BinaryOperation = function (a) {
 	return {$: 'BinaryOperation', a: a};
 };
 var $author$project$Source$AST$Null = {$: 'Null'};
-var $author$project$Source$Parser$isLowerPrecedenceHelp = F3(
+var $author$project$Source$Parser$Left = {$: 'Left'};
+var $author$project$Source$Parser$Right = {$: 'Right'};
+var $author$project$Source$AST$AndOp = {$: 'AndOp'};
+var $author$project$Source$AST$OrOp = {$: 'OrOp'};
+var $author$project$Source$Parser$rightAssociative = _List_fromArray(
+	[$author$project$Source$AST$AndOp, $author$project$Source$AST$OrOp]);
+var $author$project$Source$Parser$associativity = function (op) {
+	return A2(
+		$elm$core$List$any,
+		$elm$core$Basics$eq(op),
+		$author$project$Source$Parser$rightAssociative) ? $author$project$Source$Parser$Right : $author$project$Source$Parser$Left;
+};
+var $author$project$Source$Parser$comparePrecedencesHelp = F3(
 	function (left, right, xs) {
-		isLowerPrecedenceHelp:
+		comparePrecedencesHelp:
 		while (true) {
 			if (!xs.b) {
-				var $temp$left = left,
-					$temp$right = right,
-					$temp$xs = _List_Nil;
-				left = $temp$left;
-				right = $temp$right;
-				xs = $temp$xs;
-				continue isLowerPrecedenceHelp;
+				return $elm$core$Basics$EQ;
 			} else {
 				var head = xs.a;
 				var tail = xs.b;
-				if (A2(
-					$elm$core$List$any,
-					$elm$core$Basics$eq(left),
-					head)) {
-					return false;
-				} else {
-					if (A2(
+				var _v1 = _Utils_Tuple2(
+					A2(
+						$elm$core$List$any,
+						$elm$core$Basics$eq(left),
+						head),
+					A2(
 						$elm$core$List$any,
 						$elm$core$Basics$eq(right),
-						head)) {
-						return true;
+						head));
+				if (_v1.a) {
+					if (_v1.b) {
+						return $elm$core$Basics$EQ;
+					} else {
+						return $elm$core$Basics$GT;
+					}
+				} else {
+					if (_v1.b) {
+						return $elm$core$Basics$LT;
 					} else {
 						var $temp$left = left,
 							$temp$right = right,
@@ -7425,13 +7479,12 @@ var $author$project$Source$Parser$isLowerPrecedenceHelp = F3(
 						left = $temp$left;
 						right = $temp$right;
 						xs = $temp$xs;
-						continue isLowerPrecedenceHelp;
+						continue comparePrecedencesHelp;
 					}
 				}
 			}
 		}
 	});
-var $author$project$Source$AST$AndOp = {$: 'AndOp'};
 var $author$project$Source$AST$DivideOp = {$: 'DivideOp'};
 var $author$project$Source$AST$EqualsOp = {$: 'EqualsOp'};
 var $author$project$Source$AST$GreaterThanEqualOp = {$: 'GreaterThanEqualOp'};
@@ -7440,11 +7493,8 @@ var $author$project$Source$AST$LessThanEqualOp = {$: 'LessThanEqualOp'};
 var $author$project$Source$AST$LessThanOp = {$: 'LessThanOp'};
 var $author$project$Source$AST$MinusOp = {$: 'MinusOp'};
 var $author$project$Source$AST$NotEqualsOp = {$: 'NotEqualsOp'};
-var $author$project$Source$AST$OrOp = {$: 'OrOp'};
 var $author$project$Source$AST$PlusOp = {$: 'PlusOp'};
 var $author$project$Source$AST$RemainderOp = {$: 'RemainderOp'};
-var $author$project$Source$AST$TernaryLeftOp = {$: 'TernaryLeftOp'};
-var $author$project$Source$AST$TernaryRightOp = {$: 'TernaryRightOp'};
 var $author$project$Source$AST$TimesOp = {$: 'TimesOp'};
 var $author$project$Source$Parser$precedences = _List_fromArray(
 	[
@@ -7461,13 +7511,11 @@ var $author$project$Source$Parser$precedences = _List_fromArray(
 		_List_fromArray(
 		[$author$project$Source$AST$OrOp]),
 		_List_fromArray(
-		[$author$project$Source$AST$TernaryLeftOp, $author$project$Source$AST$TernaryRightOp]),
-		_List_fromArray(
 		[$author$project$Source$AST$AssignmentOp])
 	]);
-var $author$project$Source$Parser$isLowerPrecedence = F2(
+var $author$project$Source$Parser$comparePrecedences = F2(
 	function (left, right) {
-		return A3($author$project$Source$Parser$isLowerPrecedenceHelp, left, right, $author$project$Source$Parser$precedences);
+		return A3($author$project$Source$Parser$comparePrecedencesHelp, left, right, $author$project$Source$Parser$precedences);
 	});
 var $author$project$Source$Parser$finalize = F3(
 	function (xs, opStack, stack) {
@@ -7541,35 +7589,69 @@ var $author$project$Source$Parser$finalize = F3(
 							var _v10 = _v9.b;
 							var right = _v10.a;
 							var exprs = _v10.b;
-							if (A2($author$project$Source$Parser$isLowerPrecedence, op, nextOp)) {
-								var $temp$xs = prevs,
-									$temp$opStack = restOps,
-									$temp$stack = A2(
-									$elm$core$List$cons,
-									$author$project$Source$AST$BinaryOperation(
-										{left: left, operator: nextOp, right: right}),
-									exprs);
-								xs = $temp$xs;
-								opStack = $temp$opStack;
-								stack = $temp$stack;
-								continue finalize;
-							} else {
-								var $temp$xs = rest,
-									$temp$opStack = A2(
-									$elm$core$List$cons,
-									op,
-									A2($elm$core$List$cons, nextOp, restOps)),
-									$temp$stack = A2(
-									$elm$core$List$cons,
-									expr,
-									A2(
+							var _v11 = A2($author$project$Source$Parser$comparePrecedences, op, nextOp);
+							switch (_v11.$) {
+								case 'LT':
+									var $temp$xs = prevs,
+										$temp$opStack = restOps,
+										$temp$stack = A2(
 										$elm$core$List$cons,
-										left,
-										A2($elm$core$List$cons, right, exprs)));
-								xs = $temp$xs;
-								opStack = $temp$opStack;
-								stack = $temp$stack;
-								continue finalize;
+										$author$project$Source$AST$BinaryOperation(
+											{left: left, operator: nextOp, right: right}),
+										exprs);
+									xs = $temp$xs;
+									opStack = $temp$opStack;
+									stack = $temp$stack;
+									continue finalize;
+								case 'EQ':
+									var _v12 = $author$project$Source$Parser$associativity(op);
+									if (_v12.$ === 'Left') {
+										var $temp$xs = rest,
+											$temp$opStack = A2(
+											$elm$core$List$cons,
+											op,
+											A2($elm$core$List$cons, nextOp, restOps)),
+											$temp$stack = A2(
+											$elm$core$List$cons,
+											expr,
+											A2(
+												$elm$core$List$cons,
+												left,
+												A2($elm$core$List$cons, right, exprs)));
+										xs = $temp$xs;
+										opStack = $temp$opStack;
+										stack = $temp$stack;
+										continue finalize;
+									} else {
+										var $temp$xs = prevs,
+											$temp$opStack = restOps,
+											$temp$stack = A2(
+											$elm$core$List$cons,
+											$author$project$Source$AST$BinaryOperation(
+												{left: left, operator: nextOp, right: right}),
+											exprs);
+										xs = $temp$xs;
+										opStack = $temp$opStack;
+										stack = $temp$stack;
+										continue finalize;
+									}
+								default:
+									var $temp$xs = rest,
+										$temp$opStack = A2(
+										$elm$core$List$cons,
+										op,
+										A2($elm$core$List$cons, nextOp, restOps)),
+										$temp$stack = A2(
+										$elm$core$List$cons,
+										expr,
+										A2(
+											$elm$core$List$cons,
+											left,
+											A2($elm$core$List$cons, right, exprs)));
+									xs = $temp$xs;
+									opStack = $temp$opStack;
+									stack = $temp$stack;
+									continue finalize;
 							}
 						} else {
 							break _v0$4;
@@ -7888,15 +7970,7 @@ var $author$project$Source$Parser$operator = $elm$parser$Parser$oneOf(
 			A2(
 			$elm$parser$Parser$ignorer,
 			$elm$parser$Parser$succeed($author$project$Source$AST$AndOp),
-			$elm$parser$Parser$symbol('&&')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$TernaryLeftOp),
-			$elm$parser$Parser$symbol('?')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$TernaryRightOp),
-			$elm$parser$Parser$symbol(':'))
+			$elm$parser$Parser$symbol('&&'))
 		]));
 var $elm$core$Tuple$pair = F2(
 	function (a, b) {
@@ -8078,7 +8152,7 @@ var $author$project$Source$Parser$arrow = function (paramsIfArrow) {
 					$elm$parser$Parser$succeed(
 						$author$project$Source$AST$ArrowFunctionExpression(paramsIfArrow)),
 					$elm$parser$Parser$lazy(
-						function (_v9) {
+						function (_v11) {
 							return $author$project$Source$Parser$cyclic$expression();
 						})),
 					A2(
@@ -8113,13 +8187,13 @@ var $author$project$Source$Parser$callandPropertyAccess = function (expr) {
 				A2(
 					$elm$parser$Parser$ignorer,
 					$elm$parser$Parser$lazy(
-						function (_v5) {
+						function (_v7) {
 							return $author$project$Source$Parser$cyclic$expression();
 						}),
 					$elm$parser$Parser$symbol(']'))),
 				A2(
 				$elm$parser$Parser$map,
-				function (_v6) {
+				function (_v8) {
 					return $elm$parser$Parser$Done(expr);
 				},
 				$elm$parser$Parser$succeed(_Utils_Tuple0))
@@ -8156,8 +8230,41 @@ var $author$project$Source$Parser$expressionHelp = F2(
 								$elm$parser$Parser$succeed($elm$core$Tuple$pair),
 								A2($elm$parser$Parser$ignorer, $author$project$Source$Parser$operator, $author$project$Source$Parser$spaces)),
 							$author$project$Source$Parser$cyclic$factor())),
+						A2(
+						$elm$parser$Parser$keeper,
+						A2(
+							$elm$parser$Parser$keeper,
+							A2(
+								$elm$parser$Parser$ignorer,
+								A2(
+									$elm$parser$Parser$ignorer,
+									$elm$parser$Parser$succeed(
+										F2(
+											function (c, a) {
+												return $author$project$Source$AST$ConditionalExpression(
+													{alternate: a, consequent: c, test: expr});
+											})),
+									$elm$parser$Parser$symbol('?')),
+								$author$project$Source$Parser$spaces),
+							A2(
+								$elm$parser$Parser$ignorer,
+								A2(
+									$elm$parser$Parser$ignorer,
+									A2(
+										$elm$parser$Parser$ignorer,
+										$elm$parser$Parser$lazy(
+											function (_v4) {
+												return $author$project$Source$Parser$cyclic$expression();
+											}),
+										$author$project$Source$Parser$spaces),
+									$elm$parser$Parser$symbol(':')),
+								$author$project$Source$Parser$spaces)),
 						$elm$parser$Parser$lazy(
-						function (_v4) {
+							function (_v5) {
+								return $author$project$Source$Parser$cyclic$expression();
+							})),
+						$elm$parser$Parser$lazy(
+						function (_v6) {
 							return $elm$parser$Parser$succeed(
 								A3(
 									$author$project$Source$Parser$finalize,
@@ -8480,7 +8587,7 @@ function $author$project$Source$Parser$cyclic$factor() {
 							$elm$parser$Parser$symbol('!')),
 						$author$project$Source$Parser$spaces),
 					$elm$parser$Parser$lazy(
-						function (_v12) {
+						function (_v14) {
 							return $author$project$Source$Parser$cyclic$factor();
 						})),
 					A2(
@@ -8494,7 +8601,7 @@ function $author$project$Source$Parser$cyclic$factor() {
 							$elm$parser$Parser$symbol('-')),
 						$author$project$Source$Parser$spaces),
 					$elm$parser$Parser$lazy(
-						function (_v13) {
+						function (_v15) {
 							return $author$project$Source$Parser$cyclic$factor();
 						})),
 					A2(
@@ -8527,7 +8634,7 @@ function $author$project$Source$Parser$cyclic$array() {
 			{
 				end: ']',
 				item: $elm$parser$Parser$lazy(
-					function (_v11) {
+					function (_v13) {
 						return $author$project$Source$Parser$cyclic$expression();
 					}),
 				separator: ',',
@@ -8624,7 +8731,7 @@ function $author$project$Source$Parser$cyclic$parenthesizedExpressionOrArrowFunc
 					A2(
 					$elm$parser$Parser$ignorer,
 					$elm$parser$Parser$lazy(
-						function (_v10) {
+						function (_v12) {
 							return $author$project$Source$Parser$cyclic$expression();
 						}),
 					$elm$parser$Parser$symbol(')'))
@@ -8643,7 +8750,7 @@ function $author$project$Source$Parser$cyclic$block() {
 		A2(
 			$elm$parser$Parser$ignorer,
 			$elm$parser$Parser$lazy(
-				function (_v8) {
+				function (_v10) {
 					return $author$project$Source$Parser$cyclic$statements();
 				}),
 			$elm$parser$Parser$symbol('}')));
@@ -8656,7 +8763,7 @@ function $author$project$Source$Parser$cyclic$callArgs() {
 			{
 				end: ')',
 				item: $elm$parser$Parser$lazy(
-					function (_v7) {
+					function (_v9) {
 						return $author$project$Source$Parser$cyclic$expression();
 					}),
 				separator: ',',
