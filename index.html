@@ -6404,7 +6404,7 @@ var $author$project$Source$Interpreter$evaluateExpression = F3(
 									}
 								} else {
 									var err = _v45.a;
-									return $elm$core$Result$Err('unreachable');
+									return $elm$core$Result$Err(err);
 								}
 							}
 						} else {
@@ -6476,88 +6476,101 @@ var $author$project$Source$Interpreter$evaluateExpression = F3(
 	});
 var $author$project$Source$Interpreter$evaluateStatement = F3(
 	function (statement, frames, store) {
-		var insertFrames = $elm$core$Result$map(
-			function (_v14) {
-				var v = _v14.a;
-				var s = _v14.b;
-				return _Utils_Tuple3(v, frames, s);
-			});
-		switch (statement.$) {
-			case 'ExpressionStatement':
-				var e = statement.a;
-				return insertFrames(
-					A3($author$project$Source$Interpreter$evaluateExpression, e, frames, store));
-			case 'Declaration':
-				var t = statement.a;
-				var id = statement.b;
-				var e = statement.c;
-				var _v6 = A3($author$project$Source$Interpreter$evaluateExpression, e, frames, store);
-				if (_v6.$ === 'Ok') {
-					var _v7 = _v6.a;
-					var value = _v7.a;
-					var s = _v7.b;
-					return $elm$core$Result$Ok(
-						_Utils_Tuple3(
-							$author$project$Source$Value$Undefined,
-							frames,
-							A3(
-								$elm$core$Array$set,
-								A2(
-									$elm$core$Maybe$withDefault,
-									-1,
-									A2($author$project$Source$Interpreter$lookupRef, id, frames)),
-								function () {
-									if (t.$ === 'Const') {
-										return $author$project$Source$Interpreter$Constant(value);
-									} else {
-										return $author$project$Source$Interpreter$Variable(value);
-									}
-								}(),
-								s)));
-				} else {
-					var err = _v6.a;
-					return $elm$core$Result$Err(err);
-				}
-			case 'Return':
-				var v = statement.a;
-				var _v9 = A3($author$project$Source$Interpreter$evaluateExpression, v, frames, store);
-				if (_v9.$ === 'Ok') {
-					var _v10 = _v9.a;
-					var value = _v10.a;
-					var s = _v10.b;
-					return $elm$core$Result$Ok(
-						_Utils_Tuple3(value, frames, s));
-				} else {
-					var err = _v9.a;
-					return $elm$core$Result$Err(err);
-				}
-			case 'IfStatement':
-				var test = statement.a.test;
-				var consequent = statement.a.consequent;
-				var alternate = statement.a.alternate;
-				var _v11 = A3($author$project$Source$Interpreter$evaluateExpression, test, frames, store);
-				if (_v11.$ === 'Ok') {
-					if (_v11.a.a.$ === 'Boolean') {
-						if (_v11.a.a.a) {
-							var _v12 = _v11.a;
-							var nextStore = _v12.b;
-							return insertFrames(
-								A3($author$project$Source$Interpreter$evaluateStatements, consequent, frames, nextStore));
+		evaluateStatement:
+		while (true) {
+			var insertFrames = $elm$core$Result$map(
+				function (_v14) {
+					var v = _v14.a;
+					var s = _v14.b;
+					return _Utils_Tuple3(v, frames, s);
+				});
+			switch (statement.$) {
+				case 'ExpressionStatement':
+					var e = statement.a;
+					return insertFrames(
+						A3($author$project$Source$Interpreter$evaluateExpression, e, frames, store));
+				case 'Declaration':
+					var t = statement.a;
+					var id = statement.b;
+					var e = statement.c;
+					var _v6 = A3($author$project$Source$Interpreter$evaluateExpression, e, frames, store);
+					if (_v6.$ === 'Ok') {
+						var _v7 = _v6.a;
+						var value = _v7.a;
+						var s = _v7.b;
+						return $elm$core$Result$Ok(
+							_Utils_Tuple3(
+								$author$project$Source$Value$Undefined,
+								frames,
+								A3(
+									$elm$core$Array$set,
+									A2(
+										$elm$core$Maybe$withDefault,
+										-1,
+										A2($author$project$Source$Interpreter$lookupRef, id, frames)),
+									function () {
+										if (t.$ === 'Const') {
+											return $author$project$Source$Interpreter$Constant(value);
+										} else {
+											return $author$project$Source$Interpreter$Variable(value);
+										}
+									}(),
+									s)));
+					} else {
+						var err = _v6.a;
+						return $elm$core$Result$Err(err);
+					}
+				case 'Return':
+					var v = statement.a;
+					var _v9 = A3($author$project$Source$Interpreter$evaluateExpression, v, frames, store);
+					if (_v9.$ === 'Ok') {
+						var _v10 = _v9.a;
+						var value = _v10.a;
+						var s = _v10.b;
+						return $elm$core$Result$Ok(
+							_Utils_Tuple3(value, frames, s));
+					} else {
+						var err = _v9.a;
+						return $elm$core$Result$Err(err);
+					}
+				case 'IfStatement':
+					var test = statement.a.test;
+					var consequent = statement.a.consequent;
+					var alternate = statement.a.alternate;
+					var _v11 = A3($author$project$Source$Interpreter$evaluateExpression, test, frames, store);
+					if (_v11.$ === 'Ok') {
+						if (_v11.a.a.$ === 'Boolean') {
+							if (_v11.a.a.a) {
+								var _v12 = _v11.a;
+								var nextStore = _v12.b;
+								var $temp$statement = consequent,
+									$temp$frames = frames,
+									$temp$store = nextStore;
+								statement = $temp$statement;
+								frames = $temp$frames;
+								store = $temp$store;
+								continue evaluateStatement;
+							} else {
+								var _v13 = _v11.a;
+								var nextStore = _v13.b;
+								var $temp$statement = alternate,
+									$temp$frames = frames,
+									$temp$store = nextStore;
+								statement = $temp$statement;
+								frames = $temp$frames;
+								store = $temp$store;
+								continue evaluateStatement;
+							}
 						} else {
-							var _v13 = _v11.a;
-							var nextStore = _v13.b;
-							return insertFrames(
-								A3($author$project$Source$Interpreter$evaluateStatements, alternate, frames, nextStore));
+							return $elm$core$Result$Err('test condition must be bool');
 						}
 					} else {
-						return $elm$core$Result$Err('test condition must be bool');
+						var err = _v11.a;
+						return $elm$core$Result$Err(err);
 					}
-				} else {
-					var err = _v11.a;
-					return $elm$core$Result$Err(err);
-				}
-			default:
-				return $elm$core$Result$Err('Unimplemented');
+				default:
+					return $elm$core$Result$Err('Unimplemented');
+			}
 		}
 	});
 var $author$project$Source$Interpreter$evaluateStatements = F3(
@@ -6669,6 +6682,7 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			$elm$html$Html$Events$alwaysStop,
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
+var $author$project$Source$Parser$ExpectingEnd = {$: 'ExpectingEnd'};
 var $elm$parser$Parser$Advanced$Bad = F2(
 	function (a, b) {
 		return {$: 'Bad', a: a, b: b};
@@ -6710,8 +6724,6 @@ var $elm$parser$Parser$Advanced$andThen = F2(
 				}
 			});
 	});
-var $elm$parser$Parser$andThen = $elm$parser$Parser$Advanced$andThen;
-var $elm$parser$Parser$ExpectingEnd = {$: 'ExpectingEnd'};
 var $elm$parser$Parser$Advanced$AddRight = F2(
 	function (a, b) {
 		return {$: 'AddRight', a: a, b: b};
@@ -6739,7 +6751,6 @@ var $elm$parser$Parser$Advanced$end = function (x) {
 				A2($elm$parser$Parser$Advanced$fromState, s, x));
 		});
 };
-var $elm$parser$Parser$end = $elm$parser$Parser$Advanced$end($elm$parser$Parser$ExpectingEnd);
 var $elm$parser$Parser$Advanced$map2 = F3(
 	function (func, _v0, _v1) {
 		var parseA = _v0.a;
@@ -6777,7 +6788,6 @@ var $elm$parser$Parser$Advanced$ignorer = F2(
 	function (keepParser, ignoreParser) {
 		return A3($elm$parser$Parser$Advanced$map2, $elm$core$Basics$always, keepParser, ignoreParser);
 	});
-var $elm$parser$Parser$ignorer = $elm$parser$Parser$Advanced$ignorer;
 var $elm$parser$Parser$Advanced$isSubChar = _Parser_isSubChar;
 var $elm$parser$Parser$Advanced$chompWhileHelp = F5(
 	function (isGood, offset, row, col, s0) {
@@ -6825,8 +6835,7 @@ var $elm$parser$Parser$Advanced$chompWhile = function (isGood) {
 			return A5($elm$parser$Parser$Advanced$chompWhileHelp, isGood, s.offset, s.row, s.col, s);
 		});
 };
-var $elm$parser$Parser$chompWhile = $elm$parser$Parser$Advanced$chompWhile;
-var $author$project$Source$Parser$spaces = $elm$parser$Parser$chompWhile(
+var $author$project$Source$Parser$spaces = $elm$parser$Parser$Advanced$chompWhile(
 	function (c) {
 		return _Utils_eq(
 			c,
@@ -6864,8 +6873,45 @@ var $author$project$Source$AST$Declaration = F3(
 	function (a, b, c) {
 		return {$: 'Declaration', a: a, b: b, c: c};
 	});
-var $elm$parser$Parser$Done = function (a) {
+var $elm$parser$Parser$Advanced$Done = function (a) {
 	return {$: 'Done', a: a};
+};
+var $author$project$Source$Parser$EndForInit = {$: 'EndForInit'};
+var $author$project$Source$Parser$EndForTest = {$: 'EndForTest'};
+var $author$project$Source$Parser$EndOfBreak = {$: 'EndOfBreak'};
+var $author$project$Source$Parser$EndOfContinue = {$: 'EndOfContinue'};
+var $author$project$Source$Parser$EndOfDeclaration = {$: 'EndOfDeclaration'};
+var $author$project$Source$Parser$EndOfExpressionStatement = {$: 'EndOfExpressionStatement'};
+var $author$project$Source$Parser$EndOfReturn = {$: 'EndOfReturn'};
+var $author$project$Source$Parser$ExpectingArgsSeparator = {$: 'ExpectingArgsSeparator'};
+var $author$project$Source$Parser$ExpectingArrayEnd = {$: 'ExpectingArrayEnd'};
+var $author$project$Source$Parser$ExpectingArraySeparator = {$: 'ExpectingArraySeparator'};
+var $author$project$Source$Parser$ExpectingArrayStart = {$: 'ExpectingArrayStart'};
+var $author$project$Source$Parser$ExpectingArrow = {$: 'ExpectingArrow'};
+var $author$project$Source$Parser$ExpectingBlockEnd = {$: 'ExpectingBlockEnd'};
+var $author$project$Source$Parser$ExpectingBlockStart = {$: 'ExpectingBlockStart'};
+var $author$project$Source$Parser$ExpectingDeclarationEquals = {$: 'ExpectingDeclarationEquals'};
+var $author$project$Source$Parser$ExpectingExpression = {$: 'ExpectingExpression'};
+var $author$project$Source$Parser$ExpectingExpressionOrBlock = {$: 'ExpectingExpressionOrBlock'};
+var $author$project$Source$Parser$ExpectingIfConsequent = {$: 'ExpectingIfConsequent'};
+var $author$project$Source$Parser$ExpectingIfOrBlock = {$: 'ExpectingIfOrBlock'};
+var $author$project$Source$Parser$ExpectingIfTest = {$: 'ExpectingIfTest'};
+var $author$project$Source$Parser$ExpectingLParen = function (a) {
+	return {$: 'ExpectingLParen', a: a};
+};
+var $author$project$Source$Parser$ExpectingMemberEnd = {$: 'ExpectingMemberEnd'};
+var $author$project$Source$Parser$ExpectingMemberStart = {$: 'ExpectingMemberStart'};
+var $author$project$Source$Parser$ExpectingParamsSeparator = {$: 'ExpectingParamsSeparator'};
+var $author$project$Source$Parser$ExpectingRParen = function (a) {
+	return {$: 'ExpectingRParen', a: a};
+};
+var $author$project$Source$Parser$ExpectingSemi = function (a) {
+	return {$: 'ExpectingSemi', a: a};
+};
+var $author$project$Source$Parser$ExpectingTernaryLeft = {$: 'ExpectingTernaryLeft'};
+var $author$project$Source$Parser$ExpectingTernaryRight = {$: 'ExpectingTernaryRight'};
+var $author$project$Source$Parser$ExpectingUnary = function (a) {
+	return {$: 'ExpectingUnary', a: a};
 };
 var $author$project$Source$AST$ExpressionStatement = function (a) {
 	return {$: 'ExpressionStatement', a: a};
@@ -6873,23 +6919,39 @@ var $author$project$Source$AST$ExpressionStatement = function (a) {
 var $author$project$Source$AST$ForStatement = function (a) {
 	return {$: 'ForStatement', a: a};
 };
-var $elm$parser$Parser$Forbidden = {$: 'Forbidden'};
+var $elm$parser$Parser$Advanced$Forbidden = {$: 'Forbidden'};
 var $author$project$Source$AST$Identifier = function (a) {
 	return {$: 'Identifier', a: a};
 };
 var $author$project$Source$AST$IfStatement = function (a) {
 	return {$: 'IfStatement', a: a};
 };
+var $author$project$Source$Parser$InDeclaration = F2(
+	function (a, b) {
+		return {$: 'InDeclaration', a: a, b: b};
+	});
+var $author$project$Source$Parser$InReturn = {$: 'InReturn'};
 var $author$project$Source$AST$JsArray = function (a) {
 	return {$: 'JsArray', a: a};
 };
 var $author$project$Source$AST$Let = {$: 'Let'};
-var $elm$parser$Parser$Loop = function (a) {
+var $elm$parser$Parser$Advanced$Loop = function (a) {
 	return {$: 'Loop', a: a};
 };
+var $author$project$Source$Parser$ParensCall = {$: 'ParensCall'};
+var $author$project$Source$Parser$ParensFor = {$: 'ParensFor'};
+var $author$project$Source$Parser$ParensGrouping = {$: 'ParensGrouping'};
+var $author$project$Source$Parser$ParensGroupingOrArrowParams = {$: 'ParensGroupingOrArrowParams'};
+var $author$project$Source$Parser$ParensIf = {$: 'ParensIf'};
+var $author$project$Source$Parser$ParensParams = {$: 'ParensParams'};
+var $author$project$Source$Parser$ParensWhile = {$: 'ParensWhile'};
 var $author$project$Source$AST$PropertyAccess = function (a) {
 	return {$: 'PropertyAccess', a: a};
 };
+var $elm$parser$Parser$Advanced$Token = F2(
+	function (a, b) {
+		return {$: 'Token', a: a, b: b};
+	});
 var $author$project$Source$AST$UnaryNegation = {$: 'UnaryNegation'};
 var $author$project$Source$AST$UnaryOperation = F2(
 	function (a, b) {
@@ -6901,6 +6963,45 @@ var $author$project$Source$AST$WhileStatement = F2(
 	});
 var $author$project$Source$AST$Boolean = function (a) {
 	return {$: 'Boolean', a: a};
+};
+var $author$project$Source$Parser$ExpectingKeyword = function (a) {
+	return {$: 'ExpectingKeyword', a: a};
+};
+var $elm$parser$Parser$Advanced$isSubString = _Parser_isSubString;
+var $elm$parser$Parser$Advanced$keyword = function (_v0) {
+	var kwd = _v0.a;
+	var expecting = _v0.b;
+	var progress = !$elm$core$String$isEmpty(kwd);
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			var _v1 = A5($elm$parser$Parser$Advanced$isSubString, kwd, s.offset, s.row, s.col, s.src);
+			var newOffset = _v1.a;
+			var newRow = _v1.b;
+			var newCol = _v1.c;
+			return (_Utils_eq(newOffset, -1) || (0 <= A3(
+				$elm$parser$Parser$Advanced$isSubChar,
+				function (c) {
+					return $elm$core$Char$isAlphaNum(c) || _Utils_eq(
+						c,
+						_Utils_chr('_'));
+				},
+				newOffset,
+				s.src))) ? A2(
+				$elm$parser$Parser$Advanced$Bad,
+				false,
+				A2($elm$parser$Parser$Advanced$fromState, s, expecting)) : A3(
+				$elm$parser$Parser$Advanced$Good,
+				progress,
+				_Utils_Tuple0,
+				{col: newCol, context: s.context, indent: s.indent, offset: newOffset, row: newRow, src: s.src});
+		});
+};
+var $author$project$Source$Parser$keyword = function (word) {
+	return $elm$parser$Parser$Advanced$keyword(
+		A2(
+			$elm$parser$Parser$Advanced$Token,
+			word,
+			$author$project$Source$Parser$ExpectingKeyword(word)));
 };
 var $elm$parser$Parser$Advanced$Append = F2(
 	function (a, b) {
@@ -6944,64 +7045,28 @@ var $elm$parser$Parser$Advanced$oneOf = function (parsers) {
 			return A3($elm$parser$Parser$Advanced$oneOfHelp, s, $elm$parser$Parser$Advanced$Empty, parsers);
 		});
 };
-var $elm$parser$Parser$oneOf = $elm$parser$Parser$Advanced$oneOf;
 var $elm$parser$Parser$Advanced$succeed = function (a) {
 	return $elm$parser$Parser$Advanced$Parser(
 		function (s) {
 			return A3($elm$parser$Parser$Advanced$Good, false, a, s);
 		});
 };
-var $elm$parser$Parser$succeed = $elm$parser$Parser$Advanced$succeed;
-var $elm$parser$Parser$ExpectingSymbol = function (a) {
-	return {$: 'ExpectingSymbol', a: a};
-};
-var $elm$parser$Parser$Advanced$Token = F2(
-	function (a, b) {
-		return {$: 'Token', a: a, b: b};
-	});
-var $elm$parser$Parser$Advanced$isSubString = _Parser_isSubString;
-var $elm$parser$Parser$Advanced$token = function (_v0) {
-	var str = _v0.a;
-	var expecting = _v0.b;
-	var progress = !$elm$core$String$isEmpty(str);
-	return $elm$parser$Parser$Advanced$Parser(
-		function (s) {
-			var _v1 = A5($elm$parser$Parser$Advanced$isSubString, str, s.offset, s.row, s.col, s.src);
-			var newOffset = _v1.a;
-			var newRow = _v1.b;
-			var newCol = _v1.c;
-			return _Utils_eq(newOffset, -1) ? A2(
-				$elm$parser$Parser$Advanced$Bad,
-				false,
-				A2($elm$parser$Parser$Advanced$fromState, s, expecting)) : A3(
-				$elm$parser$Parser$Advanced$Good,
-				progress,
-				_Utils_Tuple0,
-				{col: newCol, context: s.context, indent: s.indent, offset: newOffset, row: newRow, src: s.src});
-		});
-};
-var $elm$parser$Parser$Advanced$symbol = $elm$parser$Parser$Advanced$token;
-var $elm$parser$Parser$symbol = function (str) {
-	return $elm$parser$Parser$Advanced$symbol(
-		A2(
-			$elm$parser$Parser$Advanced$Token,
-			str,
-			$elm$parser$Parser$ExpectingSymbol(str)));
-};
-var $author$project$Source$Parser$boolean = $elm$parser$Parser$oneOf(
+var $author$project$Source$Parser$boolean = $elm$parser$Parser$Advanced$oneOf(
 	_List_fromArray(
 		[
 			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed(
+			$elm$parser$Parser$Advanced$ignorer,
+			$elm$parser$Parser$Advanced$succeed(
 				$author$project$Source$AST$Boolean(true)),
-			$elm$parser$Parser$symbol('true')),
+			$author$project$Source$Parser$keyword('true')),
 			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed(
+			$elm$parser$Parser$Advanced$ignorer,
+			$elm$parser$Parser$Advanced$succeed(
 				$author$project$Source$AST$Boolean(false)),
-			$elm$parser$Parser$symbol('false'))
+			$author$project$Source$Parser$keyword('false'))
 		]));
+var $author$project$Source$Parser$Never = {$: 'Never'};
+var $author$project$Source$Parser$ExpectingIdentifier = {$: 'ExpectingIdentifier'};
 var $elm$core$List$any = F2(
 	function (isOkay, list) {
 		any:
@@ -7027,7 +7092,6 @@ var $elm$parser$Parser$Advanced$keeper = F2(
 	function (parseFunc, parseArg) {
 		return A3($elm$parser$Parser$Advanced$map2, $elm$core$Basics$apL, parseFunc, parseArg);
 	});
-var $elm$parser$Parser$keeper = $elm$parser$Parser$Advanced$keeper;
 var $elm$core$Set$Set_elm_builtin = function (a) {
 	return {$: 'Set_elm_builtin', a: a};
 };
@@ -7044,7 +7108,6 @@ var $elm$core$Set$fromList = function (list) {
 var $author$project$Source$Parser$reserved = $elm$core$Set$fromList(
 	_List_fromArray(
 		['break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete', 'do', 'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return', 'switch', 'this', 'throw', 'try', 'typeof', 'var', 'void', 'while', 'with', 'class', 'const', 'enum', 'export', 'extends', 'import', 'super', 'implements', 'interface', 'let', 'package', 'private', 'protected', 'public', 'static', 'yield', 'null', 'true', 'false']));
-var $elm$parser$Parser$ExpectingVariable = {$: 'ExpectingVariable'};
 var $elm$core$Dict$member = F2(
 	function (key, dict) {
 		var _v0 = A2($elm$core$Dict$get, key, dict);
@@ -7122,15 +7185,12 @@ var $elm$parser$Parser$Advanced$variable = function (i) {
 			}
 		});
 };
-var $elm$parser$Parser$variable = function (i) {
-	return $elm$parser$Parser$Advanced$variable(
-		{expecting: $elm$parser$Parser$ExpectingVariable, inner: i.inner, reserved: i.reserved, start: i.start});
-};
 var $author$project$Source$Parser$identifier = A2(
-	$elm$parser$Parser$keeper,
-	$elm$parser$Parser$succeed($elm$core$Basics$identity),
-	$elm$parser$Parser$variable(
+	$elm$parser$Parser$Advanced$keeper,
+	$elm$parser$Parser$Advanced$succeed($elm$core$Basics$identity),
+	$elm$parser$Parser$Advanced$variable(
 		{
+			expecting: $author$project$Source$Parser$ExpectingIdentifier,
 			inner: function (c) {
 				return $elm$core$Char$isAlphaNum(c) || A2(
 					$elm$core$List$any,
@@ -7215,12 +7275,6 @@ var $elm$parser$Parser$Advanced$map = F2(
 				}
 			});
 	});
-var $elm$parser$Parser$Advanced$Done = function (a) {
-	return {$: 'Done', a: a};
-};
-var $elm$parser$Parser$Advanced$Loop = function (a) {
-	return {$: 'Loop', a: a};
-};
 var $elm$parser$Parser$Advanced$revAlways = F2(
 	function (_v0, b) {
 		return b;
@@ -7379,6 +7433,26 @@ var $elm$parser$Parser$Advanced$sequenceEnd = F5(
 					ender)
 				]));
 	});
+var $elm$parser$Parser$Advanced$token = function (_v0) {
+	var str = _v0.a;
+	var expecting = _v0.b;
+	var progress = !$elm$core$String$isEmpty(str);
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			var _v1 = A5($elm$parser$Parser$Advanced$isSubString, str, s.offset, s.row, s.col, s.src);
+			var newOffset = _v1.a;
+			var newRow = _v1.b;
+			var newCol = _v1.c;
+			return _Utils_eq(newOffset, -1) ? A2(
+				$elm$parser$Parser$Advanced$Bad,
+				false,
+				A2($elm$parser$Parser$Advanced$fromState, s, expecting)) : A3(
+				$elm$parser$Parser$Advanced$Good,
+				progress,
+				_Utils_Tuple0,
+				{col: newCol, context: s.context, indent: s.indent, offset: newOffset, row: newRow, src: s.src});
+		});
+};
 var $elm$parser$Parser$Advanced$sequence = function (i) {
 	return A2(
 		$elm$parser$Parser$Advanced$skip,
@@ -7394,41 +7468,47 @@ var $elm$parser$Parser$Advanced$sequence = function (i) {
 				$elm$parser$Parser$Advanced$token(i.separator),
 				i.trailing)));
 };
-var $elm$parser$Parser$Advanced$Forbidden = {$: 'Forbidden'};
-var $elm$parser$Parser$Advanced$Mandatory = {$: 'Mandatory'};
-var $elm$parser$Parser$Advanced$Optional = {$: 'Optional'};
-var $elm$parser$Parser$toAdvancedTrailing = function (trailing) {
-	switch (trailing.$) {
-		case 'Forbidden':
-			return $elm$parser$Parser$Advanced$Forbidden;
-		case 'Optional':
-			return $elm$parser$Parser$Advanced$Optional;
-		default:
-			return $elm$parser$Parser$Advanced$Mandatory;
-	}
-};
-var $elm$parser$Parser$Expecting = function (a) {
-	return {$: 'Expecting', a: a};
-};
-var $elm$parser$Parser$toToken = function (str) {
-	return A2(
-		$elm$parser$Parser$Advanced$Token,
-		str,
-		$elm$parser$Parser$Expecting(str));
-};
-var $elm$parser$Parser$sequence = function (i) {
-	return $elm$parser$Parser$Advanced$sequence(
-		{
-			end: $elm$parser$Parser$toToken(i.end),
-			item: i.item,
-			separator: $elm$parser$Parser$toToken(i.separator),
-			spaces: i.spaces,
-			start: $elm$parser$Parser$toToken(i.start),
-			trailing: $elm$parser$Parser$toAdvancedTrailing(i.trailing)
+var $author$project$Source$Parser$closingNames = $elm$parser$Parser$Advanced$sequence(
+	{
+		end: A2(
+			$elm$parser$Parser$Advanced$Token,
+			')',
+			$author$project$Source$Parser$ExpectingRParen($author$project$Source$Parser$ParensParams)),
+		item: $author$project$Source$Parser$identifier,
+		separator: A2($elm$parser$Parser$Advanced$Token, ',', $author$project$Source$Parser$ExpectingParamsSeparator),
+		spaces: $author$project$Source$Parser$spaces,
+		start: A2($elm$parser$Parser$Advanced$Token, '', $author$project$Source$Parser$Never),
+		trailing: $elm$parser$Parser$Advanced$Forbidden
+	});
+var $elm$parser$Parser$Advanced$commit = function (a) {
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			return A3($elm$parser$Parser$Advanced$Good, true, a, s);
 		});
 };
-var $author$project$Source$Parser$closingNames = $elm$parser$Parser$sequence(
-	{end: ')', item: $author$project$Source$Parser$identifier, separator: ',', spaces: $author$project$Source$Parser$spaces, start: '', trailing: $elm$parser$Parser$Forbidden});
+var $elm$parser$Parser$Advanced$problem = function (x) {
+	return $elm$parser$Parser$Advanced$Parser(
+		function (s) {
+			return A2(
+				$elm$parser$Parser$Advanced$Bad,
+				false,
+				A2($elm$parser$Parser$Advanced$fromState, s, x));
+		});
+};
+var $author$project$Source$Parser$expecting = F2(
+	function (orElse, toBe) {
+		return $elm$parser$Parser$Advanced$oneOf(
+			_List_fromArray(
+				[
+					toBe,
+					A2(
+					$elm$parser$Parser$Advanced$andThen,
+					function (_v0) {
+						return $elm$parser$Parser$Advanced$problem(orElse);
+					},
+					$elm$parser$Parser$Advanced$commit(_Utils_Tuple0))
+				]));
+	});
 var $author$project$Source$AST$BinaryOperation = function (a) {
 	return {$: 'BinaryOperation', a: a};
 };
@@ -7662,44 +7742,42 @@ var $author$project$Source$Parser$finalize = F3(
 			return $author$project$Source$AST$Null;
 		}
 	});
-var $elm$parser$Parser$ExpectingKeyword = function (a) {
-	return {$: 'ExpectingKeyword', a: a};
-};
-var $elm$parser$Parser$Advanced$keyword = function (_v0) {
-	var kwd = _v0.a;
-	var expecting = _v0.b;
-	var progress = !$elm$core$String$isEmpty(kwd);
-	return $elm$parser$Parser$Advanced$Parser(
-		function (s) {
-			var _v1 = A5($elm$parser$Parser$Advanced$isSubString, kwd, s.offset, s.row, s.col, s.src);
-			var newOffset = _v1.a;
-			var newRow = _v1.b;
-			var newCol = _v1.c;
-			return (_Utils_eq(newOffset, -1) || (0 <= A3(
-				$elm$parser$Parser$Advanced$isSubChar,
-				function (c) {
-					return $elm$core$Char$isAlphaNum(c) || _Utils_eq(
-						c,
-						_Utils_chr('_'));
-				},
-				newOffset,
-				s.src))) ? A2(
-				$elm$parser$Parser$Advanced$Bad,
-				false,
-				A2($elm$parser$Parser$Advanced$fromState, s, expecting)) : A3(
-				$elm$parser$Parser$Advanced$Good,
-				progress,
-				_Utils_Tuple0,
-				{col: newCol, context: s.context, indent: s.indent, offset: newOffset, row: newRow, src: s.src});
-		});
-};
-var $elm$parser$Parser$keyword = function (kwd) {
-	return $elm$parser$Parser$Advanced$keyword(
-		A2(
-			$elm$parser$Parser$Advanced$Token,
-			kwd,
-			$elm$parser$Parser$ExpectingKeyword(kwd)));
-};
+var $elm$parser$Parser$Advanced$Located = F3(
+	function (row, col, context) {
+		return {col: col, context: context, row: row};
+	});
+var $elm$parser$Parser$Advanced$changeContext = F2(
+	function (newContext, s) {
+		return {col: s.col, context: newContext, indent: s.indent, offset: s.offset, row: s.row, src: s.src};
+	});
+var $elm$parser$Parser$Advanced$inContext = F2(
+	function (context, _v0) {
+		var parse = _v0.a;
+		return $elm$parser$Parser$Advanced$Parser(
+			function (s0) {
+				var _v1 = parse(
+					A2(
+						$elm$parser$Parser$Advanced$changeContext,
+						A2(
+							$elm$core$List$cons,
+							A3($elm$parser$Parser$Advanced$Located, s0.row, s0.col, context),
+							s0.context),
+						s0));
+				if (_v1.$ === 'Good') {
+					var p = _v1.a;
+					var a = _v1.b;
+					var s1 = _v1.c;
+					return A3(
+						$elm$parser$Parser$Advanced$Good,
+						p,
+						a,
+						A2($elm$parser$Parser$Advanced$changeContext, s0.context, s1));
+				} else {
+					var step = _v1;
+					return step;
+				}
+			});
+	});
 var $elm$parser$Parser$Advanced$lazy = function (thunk) {
 	return $elm$parser$Parser$Advanced$Parser(
 		function (s) {
@@ -7708,30 +7786,7 @@ var $elm$parser$Parser$Advanced$lazy = function (thunk) {
 			return parse(s);
 		});
 };
-var $elm$parser$Parser$lazy = $elm$parser$Parser$Advanced$lazy;
-var $elm$parser$Parser$map = $elm$parser$Parser$Advanced$map;
-var $elm$parser$Parser$toAdvancedStep = function (step) {
-	if (step.$ === 'Loop') {
-		var s = step.a;
-		return $elm$parser$Parser$Advanced$Loop(s);
-	} else {
-		var a = step.a;
-		return $elm$parser$Parser$Advanced$Done(a);
-	}
-};
-var $elm$parser$Parser$loop = F2(
-	function (state, callback) {
-		return A2(
-			$elm$parser$Parser$Advanced$loop,
-			state,
-			function (s) {
-				return A2(
-					$elm$parser$Parser$map,
-					$elm$parser$Parser$toAdvancedStep,
-					callback(s));
-			});
-	});
-var $author$project$Source$Parser$noLineTerminator = $elm$parser$Parser$chompWhile(
+var $author$project$Source$Parser$noLineTerminator = $elm$parser$Parser$Advanced$chompWhile(
 	function (c) {
 		return _Utils_eq(
 			c,
@@ -7740,13 +7795,18 @@ var $author$project$Source$Parser$noLineTerminator = $elm$parser$Parser$chompWhi
 			_Utils_chr('\t'));
 	});
 var $author$project$Source$Parser$null = A2(
-	$elm$parser$Parser$ignorer,
-	$elm$parser$Parser$succeed($author$project$Source$AST$Null),
-	$elm$parser$Parser$symbol('null'));
+	$elm$parser$Parser$Advanced$ignorer,
+	$elm$parser$Parser$Advanced$succeed($author$project$Source$AST$Null),
+	$author$project$Source$Parser$keyword('null'));
+var $author$project$Source$Parser$ExpectingNumber = {$: 'ExpectingNumber'};
 var $author$project$Source$AST$Number = function (a) {
 	return {$: 'Number', a: a};
 };
-var $elm$parser$Parser$ExpectingFloat = {$: 'ExpectingFloat'};
+var $elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
 var $elm$parser$Parser$Advanced$consumeBase = _Parser_consumeBase;
 var $elm$parser$Parser$Advanced$consumeBase16 = _Parser_consumeBase16;
 var $elm$parser$Parser$Advanced$bumpOffset = F2(
@@ -7894,91 +7954,74 @@ var $elm$parser$Parser$Advanced$number = function (c) {
 			}
 		});
 };
-var $elm$parser$Parser$Advanced$float = F2(
-	function (expecting, invalid) {
-		return $elm$parser$Parser$Advanced$number(
-			{
-				binary: $elm$core$Result$Err(invalid),
-				expecting: expecting,
-				_float: $elm$core$Result$Ok($elm$core$Basics$identity),
-				hex: $elm$core$Result$Err(invalid),
-				_int: $elm$core$Result$Ok($elm$core$Basics$toFloat),
-				invalid: invalid,
-				octal: $elm$core$Result$Err(invalid)
-			});
+var $author$project$Source$Parser$number = $elm$parser$Parser$Advanced$number(
+	{
+		binary: $elm$core$Result$Ok(
+			A2($elm$core$Basics$composeR, $elm$core$Basics$toFloat, $author$project$Source$AST$Number)),
+		expecting: $author$project$Source$Parser$ExpectingNumber,
+		_float: $elm$core$Result$Ok($author$project$Source$AST$Number),
+		hex: $elm$core$Result$Ok(
+			A2($elm$core$Basics$composeR, $elm$core$Basics$toFloat, $author$project$Source$AST$Number)),
+		_int: $elm$core$Result$Ok(
+			A2($elm$core$Basics$composeR, $elm$core$Basics$toFloat, $author$project$Source$AST$Number)),
+		invalid: $author$project$Source$Parser$Never,
+		octal: $elm$core$Result$Ok(
+			A2($elm$core$Basics$composeR, $elm$core$Basics$toFloat, $author$project$Source$AST$Number))
 	});
-var $elm$parser$Parser$float = A2($elm$parser$Parser$Advanced$float, $elm$parser$Parser$ExpectingFloat, $elm$parser$Parser$ExpectingFloat);
-var $author$project$Source$Parser$number = A2(
-	$elm$parser$Parser$keeper,
-	$elm$parser$Parser$succeed($author$project$Source$AST$Number),
-	$elm$parser$Parser$float);
-var $author$project$Source$Parser$operator = $elm$parser$Parser$oneOf(
+var $author$project$Source$Parser$ExpectingBinary = function (a) {
+	return {$: 'ExpectingBinary', a: a};
+};
+var $elm$parser$Parser$Advanced$symbol = $elm$parser$Parser$Advanced$token;
+var $author$project$Source$Parser$symbol = F2(
+	function (token, problem) {
+		return $elm$parser$Parser$Advanced$symbol(
+			A2($elm$parser$Parser$Advanced$Token, token, problem));
+	});
+var $author$project$Source$Parser$parseBinOp = F2(
+	function (constructor, op) {
+		return A2(
+			$elm$parser$Parser$Advanced$ignorer,
+			$elm$parser$Parser$Advanced$succeed(constructor),
+			A2(
+				$author$project$Source$Parser$symbol,
+				op,
+				$author$project$Source$Parser$ExpectingBinary(constructor)));
+	});
+var $author$project$Source$Parser$operator = $elm$parser$Parser$Advanced$oneOf(
 	_List_fromArray(
 		[
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$TimesOp),
-			$elm$parser$Parser$symbol('*')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$DivideOp),
-			$elm$parser$Parser$symbol('/')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$RemainderOp),
-			$elm$parser$Parser$symbol('%')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$PlusOp),
-			$elm$parser$Parser$symbol('+')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$MinusOp),
-			$elm$parser$Parser$symbol('-')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$EqualsOp),
-			$elm$parser$Parser$symbol('===')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$NotEqualsOp),
-			$elm$parser$Parser$symbol('!==')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$LessThanEqualOp),
-			$elm$parser$Parser$symbol('<=')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$LessThanOp),
-			$elm$parser$Parser$symbol('<')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$GreaterThanEqualOp),
-			$elm$parser$Parser$symbol('>=')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$GreaterThanOp),
-			$elm$parser$Parser$symbol('>')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$AssignmentOp),
-			$elm$parser$Parser$symbol('=')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$OrOp),
-			$elm$parser$Parser$symbol('||')),
-			A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$succeed($author$project$Source$AST$AndOp),
-			$elm$parser$Parser$symbol('&&'))
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$TimesOp, '*'),
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$DivideOp, '/'),
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$RemainderOp, '%'),
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$PlusOp, '+'),
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$MinusOp, '-'),
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$EqualsOp, '==='),
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$NotEqualsOp, '!=='),
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$LessThanEqualOp, '<='),
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$LessThanOp, '<'),
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$GreaterThanEqualOp, '>='),
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$GreaterThanOp, '>'),
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$AssignmentOp, '='),
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$OrOp, '||'),
+			A2($author$project$Source$Parser$parseBinOp, $author$project$Source$AST$AndOp, '&&')
 		]));
 var $elm$core$Tuple$pair = F2(
 	function (a, b) {
 		return _Utils_Tuple2(a, b);
 	});
+var $author$project$Source$Parser$DoubleQuote = {$: 'DoubleQuote'};
+var $author$project$Source$Parser$ExpectingStringStart = function (a) {
+	return {$: 'ExpectingStringStart', a: a};
+};
 var $author$project$Source$AST$JsString = function (a) {
 	return {$: 'JsString', a: a};
 };
+var $author$project$Source$Parser$ExpectingEscapeStart = {$: 'ExpectingEscapeStart'};
+var $author$project$Source$Parser$ExpectingStringEnd = function (a) {
+	return {$: 'ExpectingStringEnd', a: a};
+};
+var $author$project$Source$Parser$ExpectingUnicodeEnd = {$: 'ExpectingUnicodeEnd'};
+var $author$project$Source$Parser$ExpectingUnicodeStart = {$: 'ExpectingUnicodeStart'};
 var $elm$core$String$cons = _String_cons;
 var $elm$core$String$fromChar = function (_char) {
 	return A2($elm$core$String$cons, _char, '');
@@ -8011,7 +8054,6 @@ var $elm$parser$Parser$Advanced$mapChompedString = F2(
 var $elm$parser$Parser$Advanced$getChompedString = function (parser) {
 	return A2($elm$parser$Parser$Advanced$mapChompedString, $elm$core$Basics$always, parser);
 };
-var $elm$parser$Parser$getChompedString = $elm$parser$Parser$Advanced$getChompedString;
 var $author$project$Source$Parser$isUninteresting = function (_char) {
 	return (!_Utils_eq(
 		_char,
@@ -8019,9 +8061,17 @@ var $author$project$Source$Parser$isUninteresting = function (_char) {
 		_char,
 		_Utils_chr('\"')));
 };
-var $elm$parser$Parser$token = function (str) {
-	return $elm$parser$Parser$Advanced$token(
-		$elm$parser$Parser$toToken(str));
+var $author$project$Source$Parser$ExpectingSpecialChar = function (a) {
+	return {$: 'ExpectingSpecialChar', a: a};
+};
+var $author$project$Source$Parser$specialChar = function (c) {
+	return A2(
+		$author$project$Source$Parser$symbol,
+		c,
+		$author$project$Source$Parser$ExpectingSpecialChar(c));
+};
+var $author$project$Source$Parser$UnicodeProblem = function (a) {
+	return {$: 'UnicodeProblem', a: a};
 };
 var $author$project$Source$Parser$addHex = F2(
 	function (_char, total) {
@@ -8030,191 +8080,186 @@ var $author$project$Source$Parser$addHex = F2(
 	});
 var $elm$core$String$foldl = _String_foldl;
 var $elm$core$Char$fromCode = _Char_fromCode;
-var $elm$parser$Parser$Problem = function (a) {
-	return {$: 'Problem', a: a};
-};
-var $elm$parser$Parser$Advanced$problem = function (x) {
-	return $elm$parser$Parser$Advanced$Parser(
-		function (s) {
-			return A2(
-				$elm$parser$Parser$Advanced$Bad,
-				false,
-				A2($elm$parser$Parser$Advanced$fromState, s, x));
-		});
-};
-var $elm$parser$Parser$problem = function (msg) {
-	return $elm$parser$Parser$Advanced$problem(
-		$elm$parser$Parser$Problem(msg));
-};
 var $author$project$Source$Parser$codeToChar = function (str) {
 	var length = $elm$core$String$length(str);
 	var code = A3($elm$core$String$foldl, $author$project$Source$Parser$addHex, 0, str);
-	return ((4 <= length) && (length <= 6)) ? $elm$parser$Parser$problem('code point must have between 4 and 6 digits') : (((0 <= code) && (code <= 1114111)) ? $elm$parser$Parser$succeed(
-		$elm$core$Char$fromCode(code)) : $elm$parser$Parser$problem('code point must be between 0 and 0x10FFFF'));
+	return ((4 <= length) && (length <= 6)) ? $elm$parser$Parser$Advanced$problem(
+		$author$project$Source$Parser$UnicodeProblem('code point must have between 4 and 6 digits')) : (((0 <= code) && (code <= 1114111)) ? $elm$parser$Parser$Advanced$succeed(
+		$elm$core$Char$fromCode(code)) : $elm$parser$Parser$Advanced$problem(
+		$author$project$Source$Parser$UnicodeProblem('code point must be between 0 and 0x10FFFF')));
 };
 var $elm$core$Char$isHexDigit = function (_char) {
 	var code = $elm$core$Char$toCode(_char);
 	return ((48 <= code) && (code <= 57)) || (((65 <= code) && (code <= 70)) || ((97 <= code) && (code <= 102)));
 };
 var $author$project$Source$Parser$unicode = A2(
-	$elm$parser$Parser$andThen,
+	$elm$parser$Parser$Advanced$andThen,
 	$author$project$Source$Parser$codeToChar,
-	$elm$parser$Parser$getChompedString(
-		$elm$parser$Parser$chompWhile($elm$core$Char$isHexDigit)));
+	$elm$parser$Parser$Advanced$getChompedString(
+		$elm$parser$Parser$Advanced$chompWhile($elm$core$Char$isHexDigit)));
 var $author$project$Source$Parser$stringHelp = function (revChunks) {
-	return $elm$parser$Parser$oneOf(
+	return $elm$parser$Parser$Advanced$oneOf(
 		_List_fromArray(
 			[
 				A2(
-				$elm$parser$Parser$keeper,
+				$elm$parser$Parser$Advanced$keeper,
 				A2(
-					$elm$parser$Parser$ignorer,
-					$elm$parser$Parser$succeed(
+					$elm$parser$Parser$Advanced$ignorer,
+					$elm$parser$Parser$Advanced$succeed(
 						function (chunk) {
-							return $elm$parser$Parser$Loop(
+							return $elm$parser$Parser$Advanced$Loop(
 								A2($elm$core$List$cons, chunk, revChunks));
 						}),
-					$elm$parser$Parser$token('\\')),
-				$elm$parser$Parser$oneOf(
+					A2($author$project$Source$Parser$symbol, '\\', $author$project$Source$Parser$ExpectingEscapeStart)),
+				$elm$parser$Parser$Advanced$oneOf(
 					_List_fromArray(
 						[
 							A2(
-							$elm$parser$Parser$map,
+							$elm$parser$Parser$Advanced$map,
 							function (_v0) {
 								return '\n';
 							},
-							$elm$parser$Parser$token('n')),
+							$author$project$Source$Parser$specialChar('n')),
 							A2(
-							$elm$parser$Parser$map,
+							$elm$parser$Parser$Advanced$map,
 							function (_v1) {
 								return '\t';
 							},
-							$elm$parser$Parser$token('t')),
+							$author$project$Source$Parser$specialChar('t')),
 							A2(
-							$elm$parser$Parser$map,
+							$elm$parser$Parser$Advanced$map,
 							function (_v2) {
 								return '\u000D';
 							},
-							$elm$parser$Parser$token('r')),
+							$author$project$Source$Parser$specialChar('r')),
 							A2(
-							$elm$parser$Parser$keeper,
+							$elm$parser$Parser$Advanced$keeper,
 							A2(
-								$elm$parser$Parser$ignorer,
-								$elm$parser$Parser$succeed($elm$core$String$fromChar),
-								$elm$parser$Parser$token('u{')),
+								$elm$parser$Parser$Advanced$ignorer,
+								$elm$parser$Parser$Advanced$succeed($elm$core$String$fromChar),
+								A2($author$project$Source$Parser$symbol, 'u{', $author$project$Source$Parser$ExpectingUnicodeStart)),
 							A2(
-								$elm$parser$Parser$ignorer,
+								$elm$parser$Parser$Advanced$ignorer,
 								$author$project$Source$Parser$unicode,
-								$elm$parser$Parser$token('}')))
+								A2($author$project$Source$Parser$symbol, '}', $author$project$Source$Parser$ExpectingUnicodeEnd)))
 						]))),
 				A2(
-				$elm$parser$Parser$map,
+				$elm$parser$Parser$Advanced$map,
 				function (_v3) {
-					return $elm$parser$Parser$Done(
+					return $elm$parser$Parser$Advanced$Done(
 						A2(
 							$elm$core$String$join,
 							'',
 							$elm$core$List$reverse(revChunks)));
 				},
-				$elm$parser$Parser$token('\"')),
 				A2(
-				$elm$parser$Parser$map,
+					$author$project$Source$Parser$symbol,
+					'\"',
+					$author$project$Source$Parser$ExpectingStringEnd($author$project$Source$Parser$DoubleQuote))),
+				A2(
+				$elm$parser$Parser$Advanced$map,
 				function (chunk) {
-					return $elm$parser$Parser$Loop(
+					return $elm$parser$Parser$Advanced$Loop(
 						A2($elm$core$List$cons, chunk, revChunks));
 				},
-				$elm$parser$Parser$getChompedString(
-					$elm$parser$Parser$chompWhile($author$project$Source$Parser$isUninteresting)))
+				$elm$parser$Parser$Advanced$getChompedString(
+					$elm$parser$Parser$Advanced$chompWhile($author$project$Source$Parser$isUninteresting)))
 			]));
 };
 var $author$project$Source$Parser$string = A2(
-	$elm$parser$Parser$keeper,
+	$elm$parser$Parser$Advanced$keeper,
 	A2(
-		$elm$parser$Parser$ignorer,
-		$elm$parser$Parser$succeed($author$project$Source$AST$JsString),
-		$elm$parser$Parser$token('\"')),
-	A2($elm$parser$Parser$loop, _List_Nil, $author$project$Source$Parser$stringHelp));
+		$elm$parser$Parser$Advanced$ignorer,
+		$elm$parser$Parser$Advanced$succeed($author$project$Source$AST$JsString),
+		A2(
+			$author$project$Source$Parser$symbol,
+			'\"',
+			$author$project$Source$Parser$ExpectingStringStart($author$project$Source$Parser$DoubleQuote))),
+	A2($elm$parser$Parser$Advanced$loop, _List_Nil, $author$project$Source$Parser$stringHelp));
 var $author$project$Source$Parser$arrow = function (paramsIfArrow) {
 	return A2(
-		$elm$parser$Parser$keeper,
+		$elm$parser$Parser$Advanced$keeper,
 		A2(
-			$elm$parser$Parser$ignorer,
+			$elm$parser$Parser$Advanced$ignorer,
 			A2(
-				$elm$parser$Parser$ignorer,
-				$elm$parser$Parser$succeed($elm$core$Basics$identity),
-				$elm$parser$Parser$symbol('=>')),
+				$elm$parser$Parser$Advanced$ignorer,
+				$elm$parser$Parser$Advanced$succeed($elm$core$Basics$identity),
+				A2($author$project$Source$Parser$symbol, '=>', $author$project$Source$Parser$ExpectingArrow)),
 			$author$project$Source$Parser$spaces),
-		$elm$parser$Parser$oneOf(
-			_List_fromArray(
-				[
-					A2(
-					$elm$parser$Parser$keeper,
-					$elm$parser$Parser$succeed(
-						$author$project$Source$AST$ArrowFunctionExpression(paramsIfArrow)),
-					$elm$parser$Parser$lazy(
-						function (_v11) {
-							return $author$project$Source$Parser$cyclic$expression();
-						})),
-					A2(
-					$elm$parser$Parser$keeper,
-					$elm$parser$Parser$succeed(
-						$author$project$Source$AST$ArrowFunctionExpressionBlockBody(paramsIfArrow)),
-					$author$project$Source$Parser$cyclic$block())
-				])));
+		A2(
+			$author$project$Source$Parser$expecting,
+			$author$project$Source$Parser$ExpectingExpressionOrBlock,
+			$elm$parser$Parser$Advanced$oneOf(
+				_List_fromArray(
+					[
+						A2(
+						$elm$parser$Parser$Advanced$keeper,
+						$elm$parser$Parser$Advanced$succeed(
+							$author$project$Source$AST$ArrowFunctionExpression(paramsIfArrow)),
+						$elm$parser$Parser$Advanced$lazy(
+							function (_v9) {
+								return $author$project$Source$Parser$cyclic$expression();
+							})),
+						A2(
+						$elm$parser$Parser$Advanced$keeper,
+						$elm$parser$Parser$Advanced$succeed(
+							$author$project$Source$AST$ArrowFunctionExpressionBlockBody(paramsIfArrow)),
+						$author$project$Source$Parser$cyclic$block())
+					]))));
 };
 var $author$project$Source$Parser$callandPropertyAccess = function (expr) {
-	return $elm$parser$Parser$oneOf(
+	return $elm$parser$Parser$Advanced$oneOf(
 		_List_fromArray(
 			[
 				A2(
-				$elm$parser$Parser$map,
+				$elm$parser$Parser$Advanced$map,
 				function (args) {
-					return $elm$parser$Parser$Loop(
+					return $elm$parser$Parser$Advanced$Loop(
 						A2($author$project$Source$AST$Call, expr, args));
 				},
 				$author$project$Source$Parser$cyclic$callArgs()),
 				A2(
-				$elm$parser$Parser$keeper,
+				$elm$parser$Parser$Advanced$keeper,
 				A2(
-					$elm$parser$Parser$ignorer,
-					$elm$parser$Parser$succeed(
+					$elm$parser$Parser$Advanced$ignorer,
+					$elm$parser$Parser$Advanced$succeed(
 						function (property) {
-							return $elm$parser$Parser$Loop(
+							return $elm$parser$Parser$Advanced$Loop(
 								$author$project$Source$AST$PropertyAccess(
 									{object: expr, property: property}));
 						}),
-					$elm$parser$Parser$symbol('[')),
+					A2($author$project$Source$Parser$symbol, '[', $author$project$Source$Parser$ExpectingMemberStart)),
 				A2(
-					$elm$parser$Parser$ignorer,
-					$elm$parser$Parser$lazy(
-						function (_v7) {
+					$elm$parser$Parser$Advanced$ignorer,
+					$elm$parser$Parser$Advanced$lazy(
+						function (_v5) {
 							return $author$project$Source$Parser$cyclic$expression();
 						}),
-					$elm$parser$Parser$symbol(']'))),
+					A2($author$project$Source$Parser$symbol, ']', $author$project$Source$Parser$ExpectingMemberEnd))),
 				A2(
-				$elm$parser$Parser$map,
-				function (_v8) {
-					return $elm$parser$Parser$Done(expr);
+				$elm$parser$Parser$Advanced$map,
+				function (_v6) {
+					return $elm$parser$Parser$Advanced$Done(expr);
 				},
-				$elm$parser$Parser$succeed(_Utils_Tuple0))
+				$elm$parser$Parser$Advanced$succeed(_Utils_Tuple0))
 			]));
 };
 var $author$project$Source$Parser$expressionHelp = F2(
 	function (revOps, expr) {
 		return A2(
-			$elm$parser$Parser$keeper,
+			$elm$parser$Parser$Advanced$keeper,
 			A2(
-				$elm$parser$Parser$ignorer,
-				$elm$parser$Parser$succeed($elm$core$Basics$identity),
+				$elm$parser$Parser$Advanced$ignorer,
+				$elm$parser$Parser$Advanced$succeed($elm$core$Basics$identity),
 				$author$project$Source$Parser$spaces),
-			$elm$parser$Parser$oneOf(
+			$elm$parser$Parser$Advanced$oneOf(
 				_List_fromArray(
 					[
 						A2(
-						$elm$parser$Parser$andThen,
-						function (_v3) {
-							var op = _v3.a;
-							var newExpr = _v3.b;
+						$elm$parser$Parser$Advanced$andThen,
+						function (_v1) {
+							var op = _v1.a;
+							var newExpr = _v1.b;
 							return A2(
 								$author$project$Source$Parser$expressionHelp,
 								A2(
@@ -8224,48 +8269,48 @@ var $author$project$Source$Parser$expressionHelp = F2(
 								newExpr);
 						},
 						A2(
-							$elm$parser$Parser$keeper,
+							$elm$parser$Parser$Advanced$keeper,
 							A2(
-								$elm$parser$Parser$keeper,
-								$elm$parser$Parser$succeed($elm$core$Tuple$pair),
-								A2($elm$parser$Parser$ignorer, $author$project$Source$Parser$operator, $author$project$Source$Parser$spaces)),
+								$elm$parser$Parser$Advanced$keeper,
+								$elm$parser$Parser$Advanced$succeed($elm$core$Tuple$pair),
+								A2($elm$parser$Parser$Advanced$ignorer, $author$project$Source$Parser$operator, $author$project$Source$Parser$spaces)),
 							$author$project$Source$Parser$cyclic$factor())),
 						A2(
-						$elm$parser$Parser$keeper,
+						$elm$parser$Parser$Advanced$keeper,
 						A2(
-							$elm$parser$Parser$keeper,
+							$elm$parser$Parser$Advanced$keeper,
 							A2(
-								$elm$parser$Parser$ignorer,
+								$elm$parser$Parser$Advanced$ignorer,
 								A2(
-									$elm$parser$Parser$ignorer,
-									$elm$parser$Parser$succeed(
+									$elm$parser$Parser$Advanced$ignorer,
+									$elm$parser$Parser$Advanced$succeed(
 										F2(
 											function (c, a) {
 												return $author$project$Source$AST$ConditionalExpression(
 													{alternate: a, consequent: c, test: expr});
 											})),
-									$elm$parser$Parser$symbol('?')),
+									A2($author$project$Source$Parser$symbol, '?', $author$project$Source$Parser$ExpectingTernaryLeft)),
 								$author$project$Source$Parser$spaces),
 							A2(
-								$elm$parser$Parser$ignorer,
+								$elm$parser$Parser$Advanced$ignorer,
 								A2(
-									$elm$parser$Parser$ignorer,
+									$elm$parser$Parser$Advanced$ignorer,
 									A2(
-										$elm$parser$Parser$ignorer,
-										$elm$parser$Parser$lazy(
-											function (_v4) {
+										$elm$parser$Parser$Advanced$ignorer,
+										$elm$parser$Parser$Advanced$lazy(
+											function (_v2) {
 												return $author$project$Source$Parser$cyclic$expression();
 											}),
 										$author$project$Source$Parser$spaces),
-									$elm$parser$Parser$symbol(':')),
+									A2($author$project$Source$Parser$symbol, ':', $author$project$Source$Parser$ExpectingTernaryRight)),
 								$author$project$Source$Parser$spaces)),
-						$elm$parser$Parser$lazy(
-							function (_v5) {
+						$elm$parser$Parser$Advanced$lazy(
+							function (_v3) {
 								return $author$project$Source$Parser$cyclic$expression();
 							})),
-						$elm$parser$Parser$lazy(
-						function (_v6) {
-							return $elm$parser$Parser$succeed(
+						$elm$parser$Parser$Advanced$lazy(
+						function (_v4) {
+							return $elm$parser$Parser$Advanced$succeed(
 								A3(
 									$author$project$Source$Parser$finalize,
 									revOps,
@@ -8278,103 +8323,105 @@ var $author$project$Source$Parser$expressionHelp = F2(
 var $author$project$Source$Parser$optionalArrow = F2(
 	function (exprIfNoArrow, paramsIfArrow) {
 		return A2(
-			$elm$parser$Parser$keeper,
+			$elm$parser$Parser$Advanced$keeper,
 			A2(
-				$elm$parser$Parser$ignorer,
-				$elm$parser$Parser$succeed($elm$core$Basics$identity),
+				$elm$parser$Parser$Advanced$ignorer,
+				$elm$parser$Parser$Advanced$succeed($elm$core$Basics$identity),
 				$author$project$Source$Parser$spaces),
-			$elm$parser$Parser$oneOf(
+			$elm$parser$Parser$Advanced$oneOf(
 				_List_fromArray(
 					[
 						$author$project$Source$Parser$arrow(paramsIfArrow),
-						$elm$parser$Parser$succeed(exprIfNoArrow)
+						$elm$parser$Parser$Advanced$succeed(exprIfNoArrow)
 					])));
 	});
 var $author$project$Source$Parser$statementsHelp = function (revStmts) {
-	return $elm$parser$Parser$oneOf(
+	return $elm$parser$Parser$Advanced$oneOf(
 		_List_fromArray(
 			[
 				A2(
-				$elm$parser$Parser$keeper,
-				$elm$parser$Parser$succeed(
+				$elm$parser$Parser$Advanced$keeper,
+				$elm$parser$Parser$Advanced$succeed(
 					function (stmt) {
-						return $elm$parser$Parser$Loop(
+						return $elm$parser$Parser$Advanced$Loop(
 							A2($elm$core$List$cons, stmt, revStmts));
 					}),
 				A2(
-					$elm$parser$Parser$ignorer,
+					$elm$parser$Parser$Advanced$ignorer,
 					$author$project$Source$Parser$cyclic$statement(),
 					$author$project$Source$Parser$spaces)),
 				A2(
-				$elm$parser$Parser$map,
-				function (_v2) {
-					return $elm$parser$Parser$Done(
+				$elm$parser$Parser$Advanced$map,
+				function (_v0) {
+					return $elm$parser$Parser$Advanced$Done(
 						$elm$core$List$reverse(revStmts));
 				},
-				$elm$parser$Parser$succeed(_Utils_Tuple0))
+				$elm$parser$Parser$Advanced$succeed(_Utils_Tuple0))
 			]));
 };
 function $author$project$Source$Parser$cyclic$statement() {
-	return $elm$parser$Parser$oneOf(
+	return $elm$parser$Parser$Advanced$oneOf(
 		_List_fromArray(
 			[
 				A2(
-				$elm$parser$Parser$ignorer,
+				$elm$parser$Parser$Advanced$ignorer,
 				A2(
-					$elm$parser$Parser$ignorer,
+					$elm$parser$Parser$Advanced$ignorer,
 					A2(
-						$elm$parser$Parser$ignorer,
-						$elm$parser$Parser$succeed($author$project$Source$AST$Break),
-						$elm$parser$Parser$keyword('break')),
+						$elm$parser$Parser$Advanced$ignorer,
+						$elm$parser$Parser$Advanced$succeed($author$project$Source$AST$Break),
+						$author$project$Source$Parser$keyword('break')),
 					$author$project$Source$Parser$spaces),
-				$elm$parser$Parser$symbol(';')),
 				A2(
-				$elm$parser$Parser$ignorer,
+					$author$project$Source$Parser$symbol,
+					';',
+					$author$project$Source$Parser$ExpectingSemi($author$project$Source$Parser$EndOfBreak))),
 				A2(
-					$elm$parser$Parser$ignorer,
+				$elm$parser$Parser$Advanced$ignorer,
+				A2(
+					$elm$parser$Parser$Advanced$ignorer,
 					A2(
-						$elm$parser$Parser$ignorer,
-						$elm$parser$Parser$succeed($author$project$Source$AST$Continue),
-						$elm$parser$Parser$keyword('continue')),
+						$elm$parser$Parser$Advanced$ignorer,
+						$elm$parser$Parser$Advanced$succeed($author$project$Source$AST$Continue),
+						$author$project$Source$Parser$keyword('continue')),
 					$author$project$Source$Parser$spaces),
-				$elm$parser$Parser$symbol(';')),
 				A2(
-				$elm$parser$Parser$keeper,
+					$author$project$Source$Parser$symbol,
+					';',
+					$author$project$Source$Parser$ExpectingSemi($author$project$Source$Parser$EndOfContinue))),
 				A2(
-					$elm$parser$Parser$ignorer,
+				$elm$parser$Parser$Advanced$inContext,
+				$author$project$Source$Parser$InReturn,
+				A2(
+					$elm$parser$Parser$Advanced$keeper,
 					A2(
-						$elm$parser$Parser$ignorer,
-						$elm$parser$Parser$succeed($author$project$Source$AST$Return),
-						$elm$parser$Parser$keyword('return')),
-					$author$project$Source$Parser$noLineTerminator),
-				A2(
-					$elm$parser$Parser$ignorer,
-					A2(
-						$elm$parser$Parser$ignorer,
-						$author$project$Source$Parser$cyclic$expression(),
-						$author$project$Source$Parser$spaces),
-					$elm$parser$Parser$symbol(';'))),
-				A2(
-				$elm$parser$Parser$keeper,
-				$elm$parser$Parser$succeed($author$project$Source$AST$ExpressionStatement),
-				A2(
-					$elm$parser$Parser$ignorer,
-					A2(
-						$elm$parser$Parser$ignorer,
-						$author$project$Source$Parser$cyclic$expression(),
-						$author$project$Source$Parser$spaces),
-					$elm$parser$Parser$symbol(';'))),
-				A2(
-				$elm$parser$Parser$keeper,
-				A2(
-					$elm$parser$Parser$keeper,
-					A2(
-						$elm$parser$Parser$keeper,
+						$elm$parser$Parser$Advanced$ignorer,
 						A2(
-							$elm$parser$Parser$ignorer,
+							$elm$parser$Parser$Advanced$ignorer,
+							$elm$parser$Parser$Advanced$succeed($author$project$Source$AST$Return),
+							$author$project$Source$Parser$keyword('return')),
+						$author$project$Source$Parser$noLineTerminator),
+					A2(
+						$elm$parser$Parser$Advanced$ignorer,
+						A2(
+							$elm$parser$Parser$Advanced$ignorer,
+							$author$project$Source$Parser$cyclic$expression(),
+							$author$project$Source$Parser$spaces),
+						A2(
+							$author$project$Source$Parser$symbol,
+							';',
+							$author$project$Source$Parser$ExpectingSemi($author$project$Source$Parser$EndOfReturn))))),
+				A2(
+				$elm$parser$Parser$Advanced$keeper,
+				A2(
+					$elm$parser$Parser$Advanced$keeper,
+					A2(
+						$elm$parser$Parser$Advanced$keeper,
+						A2(
+							$elm$parser$Parser$Advanced$ignorer,
 							A2(
-								$elm$parser$Parser$ignorer,
-								$elm$parser$Parser$succeed(
+								$elm$parser$Parser$Advanced$ignorer,
+								$elm$parser$Parser$Advanced$succeed(
 									F3(
 										function (id, params, body) {
 											return A3(
@@ -8383,237 +8430,323 @@ function $author$project$Source$Parser$cyclic$statement() {
 												id,
 												A2($author$project$Source$AST$ArrowFunctionExpressionBlockBody, params, body));
 										})),
-								$elm$parser$Parser$keyword('function')),
+								$author$project$Source$Parser$keyword('function')),
 							$author$project$Source$Parser$spaces),
 						A2(
-							$elm$parser$Parser$ignorer,
+							$elm$parser$Parser$Advanced$ignorer,
 							A2(
-								$elm$parser$Parser$ignorer,
-								A2($elm$parser$Parser$ignorer, $author$project$Source$Parser$identifier, $author$project$Source$Parser$spaces),
-								$elm$parser$Parser$symbol('(')),
-							$author$project$Source$Parser$spaces)),
-					A2($elm$parser$Parser$ignorer, $author$project$Source$Parser$closingNames, $author$project$Source$Parser$spaces)),
-				$author$project$Source$Parser$cyclic$block()),
-				A2(
-				$elm$parser$Parser$keeper,
-				A2(
-					$elm$parser$Parser$keeper,
-					A2(
-						$elm$parser$Parser$keeper,
-						$elm$parser$Parser$succeed($author$project$Source$AST$Declaration),
-						A2(
-							$elm$parser$Parser$ignorer,
-							$elm$parser$Parser$oneOf(
-								_List_fromArray(
-									[
-										A2(
-										$elm$parser$Parser$ignorer,
-										$elm$parser$Parser$succeed($author$project$Source$AST$Const),
-										$elm$parser$Parser$keyword('const')),
-										A2(
-										$elm$parser$Parser$ignorer,
-										$elm$parser$Parser$succeed($author$project$Source$AST$Let),
-										$elm$parser$Parser$keyword('let'))
-									])),
-							$author$project$Source$Parser$spaces)),
-					A2(
-						$elm$parser$Parser$ignorer,
-						A2(
-							$elm$parser$Parser$ignorer,
-							A2($elm$parser$Parser$ignorer, $author$project$Source$Parser$identifier, $author$project$Source$Parser$spaces),
-							$elm$parser$Parser$symbol('=')),
-						$author$project$Source$Parser$spaces)),
-				A2(
-					$elm$parser$Parser$ignorer,
-					$author$project$Source$Parser$cyclic$expression(),
-					$elm$parser$Parser$symbol(';'))),
-				A2(
-				$elm$parser$Parser$keeper,
-				$elm$parser$Parser$succeed($author$project$Source$AST$BlockStatement),
-				$author$project$Source$Parser$cyclic$block()),
-				A2(
-				$elm$parser$Parser$keeper,
-				A2(
-					$elm$parser$Parser$keeper,
-					A2(
-						$elm$parser$Parser$ignorer,
-						A2(
-							$elm$parser$Parser$ignorer,
-							A2(
-								$elm$parser$Parser$ignorer,
+								$elm$parser$Parser$Advanced$ignorer,
+								A2($elm$parser$Parser$Advanced$ignorer, $author$project$Source$Parser$identifier, $author$project$Source$Parser$spaces),
 								A2(
-									$elm$parser$Parser$ignorer,
-									$elm$parser$Parser$succeed($author$project$Source$AST$WhileStatement),
-									$elm$parser$Parser$keyword('while')),
+									$author$project$Source$Parser$symbol,
+									'(',
+									$author$project$Source$Parser$ExpectingLParen($author$project$Source$Parser$ParensParams))),
+							$author$project$Source$Parser$spaces)),
+					A2($elm$parser$Parser$Advanced$ignorer, $author$project$Source$Parser$closingNames, $author$project$Source$Parser$spaces)),
+				$author$project$Source$Parser$cyclic$block()),
+				A2(
+				$elm$parser$Parser$Advanced$andThen,
+				function (t) {
+					return A2(
+						$elm$parser$Parser$Advanced$andThen,
+						function (id) {
+							return A2(
+								$elm$parser$Parser$Advanced$inContext,
+								A2($author$project$Source$Parser$InDeclaration, t, id),
+								A2(
+									$elm$parser$Parser$Advanced$keeper,
+									A2(
+										$elm$parser$Parser$Advanced$ignorer,
+										A2(
+											$elm$parser$Parser$Advanced$ignorer,
+											$elm$parser$Parser$Advanced$succeed(
+												A2($author$project$Source$AST$Declaration, t, id)),
+											A2($author$project$Source$Parser$symbol, '=', $author$project$Source$Parser$ExpectingDeclarationEquals)),
+										$author$project$Source$Parser$spaces),
+									A2(
+										$elm$parser$Parser$Advanced$ignorer,
+										A2(
+											$author$project$Source$Parser$expecting,
+											$author$project$Source$Parser$ExpectingExpression,
+											$author$project$Source$Parser$cyclic$expression()),
+										A2(
+											$author$project$Source$Parser$symbol,
+											';',
+											$author$project$Source$Parser$ExpectingSemi($author$project$Source$Parser$EndOfDeclaration)))));
+						},
+						A2($elm$parser$Parser$Advanced$ignorer, $author$project$Source$Parser$identifier, $author$project$Source$Parser$spaces));
+				},
+				A2(
+					$elm$parser$Parser$Advanced$ignorer,
+					$elm$parser$Parser$Advanced$oneOf(
+						_List_fromArray(
+							[
+								A2(
+								$elm$parser$Parser$Advanced$ignorer,
+								$elm$parser$Parser$Advanced$succeed($author$project$Source$AST$Const),
+								$author$project$Source$Parser$keyword('const')),
+								A2(
+								$elm$parser$Parser$Advanced$ignorer,
+								$elm$parser$Parser$Advanced$succeed($author$project$Source$AST$Let),
+								$author$project$Source$Parser$keyword('let'))
+							])),
+					$author$project$Source$Parser$spaces)),
+				A2(
+				$elm$parser$Parser$Advanced$keeper,
+				$elm$parser$Parser$Advanced$succeed($author$project$Source$AST$BlockStatement),
+				$author$project$Source$Parser$cyclic$block()),
+				A2(
+				$elm$parser$Parser$Advanced$keeper,
+				A2(
+					$elm$parser$Parser$Advanced$keeper,
+					A2(
+						$elm$parser$Parser$Advanced$ignorer,
+						A2(
+							$elm$parser$Parser$Advanced$ignorer,
+							A2(
+								$elm$parser$Parser$Advanced$ignorer,
+								A2(
+									$elm$parser$Parser$Advanced$ignorer,
+									$elm$parser$Parser$Advanced$succeed($author$project$Source$AST$WhileStatement),
+									$author$project$Source$Parser$keyword('while')),
 								$author$project$Source$Parser$spaces),
-							$elm$parser$Parser$symbol('(')),
+							A2(
+								$author$project$Source$Parser$symbol,
+								'(',
+								$author$project$Source$Parser$ExpectingLParen($author$project$Source$Parser$ParensWhile))),
 						$author$project$Source$Parser$spaces),
 					A2(
-						$elm$parser$Parser$ignorer,
+						$elm$parser$Parser$Advanced$ignorer,
 						A2(
-							$elm$parser$Parser$ignorer,
+							$elm$parser$Parser$Advanced$ignorer,
 							A2(
-								$elm$parser$Parser$ignorer,
+								$elm$parser$Parser$Advanced$ignorer,
 								$author$project$Source$Parser$cyclic$expression(),
 								$author$project$Source$Parser$spaces),
-							$elm$parser$Parser$symbol(')')),
+							A2(
+								$author$project$Source$Parser$symbol,
+								')',
+								$author$project$Source$Parser$ExpectingRParen($author$project$Source$Parser$ParensWhile))),
 						$author$project$Source$Parser$spaces)),
 				$author$project$Source$Parser$cyclic$block()),
 				A2(
-				$elm$parser$Parser$keeper,
+				$elm$parser$Parser$Advanced$keeper,
 				A2(
-					$elm$parser$Parser$keeper,
+					$elm$parser$Parser$Advanced$keeper,
 					A2(
-						$elm$parser$Parser$keeper,
+						$elm$parser$Parser$Advanced$keeper,
 						A2(
-							$elm$parser$Parser$keeper,
+							$elm$parser$Parser$Advanced$keeper,
 							A2(
-								$elm$parser$Parser$ignorer,
+								$elm$parser$Parser$Advanced$ignorer,
 								A2(
-									$elm$parser$Parser$ignorer,
+									$elm$parser$Parser$Advanced$ignorer,
 									A2(
-										$elm$parser$Parser$ignorer,
+										$elm$parser$Parser$Advanced$ignorer,
 										A2(
-											$elm$parser$Parser$ignorer,
-											$elm$parser$Parser$succeed(
+											$elm$parser$Parser$Advanced$ignorer,
+											$elm$parser$Parser$Advanced$succeed(
 												F4(
 													function (init, test, update, body) {
 														return $author$project$Source$AST$ForStatement(
 															{body: body, init: init, test: test, update: update});
 													})),
-											$elm$parser$Parser$keyword('for')),
+											$author$project$Source$Parser$keyword('for')),
 										$author$project$Source$Parser$spaces),
-									$elm$parser$Parser$symbol('(')),
+									A2(
+										$author$project$Source$Parser$symbol,
+										'(',
+										$author$project$Source$Parser$ExpectingLParen($author$project$Source$Parser$ParensFor))),
 								$author$project$Source$Parser$spaces),
 							A2(
-								$elm$parser$Parser$ignorer,
+								$elm$parser$Parser$Advanced$ignorer,
 								A2(
-									$elm$parser$Parser$ignorer,
+									$elm$parser$Parser$Advanced$ignorer,
 									A2(
-										$elm$parser$Parser$ignorer,
+										$elm$parser$Parser$Advanced$ignorer,
 										$author$project$Source$Parser$cyclic$expression(),
 										$author$project$Source$Parser$spaces),
-									$elm$parser$Parser$symbol(';')),
+									A2(
+										$author$project$Source$Parser$symbol,
+										';',
+										$author$project$Source$Parser$ExpectingSemi($author$project$Source$Parser$EndForInit))),
 								$author$project$Source$Parser$spaces)),
 						A2(
-							$elm$parser$Parser$ignorer,
+							$elm$parser$Parser$Advanced$ignorer,
 							A2(
-								$elm$parser$Parser$ignorer,
+								$elm$parser$Parser$Advanced$ignorer,
 								A2(
-									$elm$parser$Parser$ignorer,
+									$elm$parser$Parser$Advanced$ignorer,
 									$author$project$Source$Parser$cyclic$expression(),
 									$author$project$Source$Parser$spaces),
-								$elm$parser$Parser$symbol(';')),
+								A2(
+									$author$project$Source$Parser$symbol,
+									';',
+									$author$project$Source$Parser$ExpectingSemi($author$project$Source$Parser$EndForTest))),
 							$author$project$Source$Parser$spaces)),
 					A2(
-						$elm$parser$Parser$ignorer,
+						$elm$parser$Parser$Advanced$ignorer,
 						A2(
-							$elm$parser$Parser$ignorer,
+							$elm$parser$Parser$Advanced$ignorer,
 							A2(
-								$elm$parser$Parser$ignorer,
+								$elm$parser$Parser$Advanced$ignorer,
 								$author$project$Source$Parser$cyclic$expression(),
 								$author$project$Source$Parser$spaces),
-							$elm$parser$Parser$symbol(')')),
+							A2(
+								$author$project$Source$Parser$symbol,
+								')',
+								$author$project$Source$Parser$ExpectingRParen($author$project$Source$Parser$ParensFor))),
 						$author$project$Source$Parser$spaces)),
 				$author$project$Source$Parser$cyclic$block()),
+				$author$project$Source$Parser$cyclic$ifStatement(),
 				A2(
-				$elm$parser$Parser$keeper,
+				$elm$parser$Parser$Advanced$keeper,
+				$elm$parser$Parser$Advanced$succeed($author$project$Source$AST$ExpressionStatement),
 				A2(
-					$elm$parser$Parser$keeper,
+					$elm$parser$Parser$Advanced$ignorer,
 					A2(
-						$elm$parser$Parser$keeper,
+						$elm$parser$Parser$Advanced$ignorer,
+						$author$project$Source$Parser$cyclic$expression(),
+						$author$project$Source$Parser$spaces),
+					A2(
+						$author$project$Source$Parser$symbol,
+						';',
+						$author$project$Source$Parser$ExpectingSemi($author$project$Source$Parser$EndOfExpressionStatement))))
+			]));
+}
+function $author$project$Source$Parser$cyclic$ifStatement() {
+	return A2(
+		$elm$parser$Parser$Advanced$keeper,
+		A2(
+			$elm$parser$Parser$Advanced$keeper,
+			A2(
+				$elm$parser$Parser$Advanced$keeper,
+				A2(
+					$elm$parser$Parser$Advanced$ignorer,
+					A2(
+						$elm$parser$Parser$Advanced$ignorer,
 						A2(
-							$elm$parser$Parser$ignorer,
+							$elm$parser$Parser$Advanced$ignorer,
 							A2(
-								$elm$parser$Parser$ignorer,
-								A2(
-									$elm$parser$Parser$ignorer,
-									A2(
-										$elm$parser$Parser$ignorer,
-										$elm$parser$Parser$succeed(
-											F3(
-												function (test, consequent, alternate) {
-													return $author$project$Source$AST$IfStatement(
-														{alternate: alternate, consequent: consequent, test: test});
-												})),
-										$elm$parser$Parser$keyword('if')),
-									$author$project$Source$Parser$spaces),
-								$elm$parser$Parser$symbol('(')),
+								$elm$parser$Parser$Advanced$ignorer,
+								$elm$parser$Parser$Advanced$succeed(
+									F3(
+										function (test, consequent, alternate) {
+											return $author$project$Source$AST$IfStatement(
+												{alternate: alternate, consequent: consequent, test: test});
+										})),
+								$author$project$Source$Parser$keyword('if')),
 							$author$project$Source$Parser$spaces),
 						A2(
-							$elm$parser$Parser$ignorer,
-							A2(
-								$elm$parser$Parser$ignorer,
-								A2(
-									$elm$parser$Parser$ignorer,
-									$author$project$Source$Parser$cyclic$expression(),
-									$author$project$Source$Parser$spaces),
-								$elm$parser$Parser$symbol(')')),
-							$author$project$Source$Parser$spaces)),
+							$author$project$Source$Parser$symbol,
+							'(',
+							$author$project$Source$Parser$ExpectingLParen($author$project$Source$Parser$ParensIf))),
+					$author$project$Source$Parser$spaces),
+				A2(
+					$elm$parser$Parser$Advanced$ignorer,
 					A2(
-						$elm$parser$Parser$ignorer,
+						$elm$parser$Parser$Advanced$ignorer,
 						A2(
-							$elm$parser$Parser$ignorer,
+							$elm$parser$Parser$Advanced$ignorer,
 							A2(
-								$elm$parser$Parser$ignorer,
-								$author$project$Source$Parser$cyclic$block(),
-								$author$project$Source$Parser$spaces),
-							$elm$parser$Parser$keyword('else')),
-						$author$project$Source$Parser$spaces)),
-				$author$project$Source$Parser$cyclic$block())
-			]));
+								$author$project$Source$Parser$expecting,
+								$author$project$Source$Parser$ExpectingIfTest,
+								$author$project$Source$Parser$cyclic$expression()),
+							$author$project$Source$Parser$spaces),
+						A2(
+							$author$project$Source$Parser$symbol,
+							')',
+							$author$project$Source$Parser$ExpectingRParen($author$project$Source$Parser$ParensIf))),
+					$author$project$Source$Parser$spaces)),
+			A2(
+				$elm$parser$Parser$Advanced$ignorer,
+				A2(
+					$elm$parser$Parser$Advanced$ignorer,
+					A2(
+						$elm$parser$Parser$Advanced$ignorer,
+						A2(
+							$author$project$Source$Parser$expecting,
+							$author$project$Source$Parser$ExpectingIfConsequent,
+							A2(
+								$elm$parser$Parser$Advanced$map,
+								$author$project$Source$AST$BlockStatement,
+								$author$project$Source$Parser$cyclic$block())),
+						$author$project$Source$Parser$spaces),
+					$author$project$Source$Parser$keyword('else')),
+				$author$project$Source$Parser$spaces)),
+		A2(
+			$author$project$Source$Parser$expecting,
+			$author$project$Source$Parser$ExpectingIfOrBlock,
+			$elm$parser$Parser$Advanced$oneOf(
+				_List_fromArray(
+					[
+						$elm$parser$Parser$Advanced$lazy(
+						function (_v14) {
+							return $author$project$Source$Parser$cyclic$ifStatement();
+						}),
+						A2(
+						$elm$parser$Parser$Advanced$map,
+						$author$project$Source$AST$BlockStatement,
+						$author$project$Source$Parser$cyclic$block())
+					]))));
 }
 function $author$project$Source$Parser$cyclic$expression() {
 	return A2(
-		$elm$parser$Parser$andThen,
+		$elm$parser$Parser$Advanced$andThen,
 		$author$project$Source$Parser$expressionHelp(_List_Nil),
 		$author$project$Source$Parser$cyclic$factor());
 }
 function $author$project$Source$Parser$cyclic$factor() {
 	return A2(
-		$elm$parser$Parser$keeper,
-		$elm$parser$Parser$succeed($elm$core$Basics$identity),
-		$elm$parser$Parser$oneOf(
+		$elm$parser$Parser$Advanced$keeper,
+		$elm$parser$Parser$Advanced$succeed($elm$core$Basics$identity),
+		$elm$parser$Parser$Advanced$oneOf(
 			_List_fromArray(
 				[
 					A2(
-					$elm$parser$Parser$keeper,
+					$elm$parser$Parser$Advanced$keeper,
 					A2(
-						$elm$parser$Parser$ignorer,
+						$elm$parser$Parser$Advanced$ignorer,
 						A2(
-							$elm$parser$Parser$ignorer,
-							$elm$parser$Parser$succeed(
+							$elm$parser$Parser$Advanced$ignorer,
+							$elm$parser$Parser$Advanced$succeed(
 								$author$project$Source$AST$UnaryOperation($author$project$Source$AST$BooleanNot)),
-							$elm$parser$Parser$symbol('!')),
+							A2(
+								$author$project$Source$Parser$symbol,
+								'!',
+								$author$project$Source$Parser$ExpectingUnary($author$project$Source$AST$BooleanNot))),
 						$author$project$Source$Parser$spaces),
-					$elm$parser$Parser$lazy(
-						function (_v14) {
+					$elm$parser$Parser$Advanced$lazy(
+						function (_v12) {
 							return $author$project$Source$Parser$cyclic$factor();
 						})),
 					A2(
-					$elm$parser$Parser$keeper,
+					$elm$parser$Parser$Advanced$keeper,
 					A2(
-						$elm$parser$Parser$ignorer,
+						$elm$parser$Parser$Advanced$ignorer,
 						A2(
-							$elm$parser$Parser$ignorer,
-							$elm$parser$Parser$succeed(
+							$elm$parser$Parser$Advanced$ignorer,
+							$elm$parser$Parser$Advanced$succeed(
 								$author$project$Source$AST$UnaryOperation($author$project$Source$AST$UnaryNegation)),
-							$elm$parser$Parser$symbol('-')),
+							A2(
+								$author$project$Source$Parser$symbol,
+								'-',
+								$author$project$Source$Parser$ExpectingUnary($author$project$Source$AST$UnaryNegation))),
 						$author$project$Source$Parser$spaces),
-					$elm$parser$Parser$lazy(
-						function (_v15) {
+					$elm$parser$Parser$Advanced$lazy(
+						function (_v13) {
 							return $author$project$Source$Parser$cyclic$factor();
 						})),
 					A2(
-					$elm$parser$Parser$andThen,
+					$elm$parser$Parser$Advanced$andThen,
 					function (t) {
-						return A2($elm$parser$Parser$loop, t, $author$project$Source$Parser$callandPropertyAccess);
+						return A2($elm$parser$Parser$Advanced$loop, t, $author$project$Source$Parser$callandPropertyAccess);
 					},
 					$author$project$Source$Parser$cyclic$term())
 				])));
 }
 function $author$project$Source$Parser$cyclic$term() {
-	return $elm$parser$Parser$oneOf(
+	return $elm$parser$Parser$Advanced$oneOf(
 		_List_fromArray(
 			[
 				$author$project$Source$Parser$null,
@@ -8621,160 +8754,189 @@ function $author$project$Source$Parser$cyclic$term() {
 				$author$project$Source$Parser$number,
 				$author$project$Source$Parser$string,
 				$author$project$Source$Parser$cyclic$identifierOrShortArrowExpression(),
-				$author$project$Source$Parser$cyclic$unaryOperation(),
 				$author$project$Source$Parser$cyclic$array(),
 				$author$project$Source$Parser$cyclic$parenthesizedExpressionOrArrowFunction()
 			]));
 }
 function $author$project$Source$Parser$cyclic$array() {
 	return A2(
-		$elm$parser$Parser$keeper,
-		$elm$parser$Parser$succeed($author$project$Source$AST$JsArray),
-		$elm$parser$Parser$sequence(
+		$elm$parser$Parser$Advanced$keeper,
+		$elm$parser$Parser$Advanced$succeed($author$project$Source$AST$JsArray),
+		$elm$parser$Parser$Advanced$sequence(
 			{
-				end: ']',
-				item: $elm$parser$Parser$lazy(
-					function (_v13) {
-						return $author$project$Source$Parser$cyclic$expression();
-					}),
-				separator: ',',
+				end: A2($elm$parser$Parser$Advanced$Token, ']', $author$project$Source$Parser$ExpectingArrayEnd),
+				item: A2(
+					$author$project$Source$Parser$expecting,
+					$author$project$Source$Parser$ExpectingExpression,
+					$elm$parser$Parser$Advanced$lazy(
+						function (_v11) {
+							return $author$project$Source$Parser$cyclic$expression();
+						})),
+				separator: A2($elm$parser$Parser$Advanced$Token, ',', $author$project$Source$Parser$ExpectingArraySeparator),
 				spaces: $author$project$Source$Parser$spaces,
-				start: '[',
-				trailing: $elm$parser$Parser$Forbidden
+				start: A2($elm$parser$Parser$Advanced$Token, '[', $author$project$Source$Parser$ExpectingArrayStart),
+				trailing: $elm$parser$Parser$Advanced$Forbidden
 			}));
 }
 function $author$project$Source$Parser$cyclic$parenthesizedExpressionOrArrowFunction() {
 	return A2(
-		$elm$parser$Parser$keeper,
+		$elm$parser$Parser$Advanced$keeper,
 		A2(
-			$elm$parser$Parser$ignorer,
+			$elm$parser$Parser$Advanced$ignorer,
 			A2(
-				$elm$parser$Parser$ignorer,
-				$elm$parser$Parser$succeed($elm$core$Basics$identity),
-				$elm$parser$Parser$symbol('(')),
+				$elm$parser$Parser$Advanced$ignorer,
+				$elm$parser$Parser$Advanced$succeed($elm$core$Basics$identity),
+				A2(
+					$author$project$Source$Parser$symbol,
+					'(',
+					$author$project$Source$Parser$ExpectingLParen($author$project$Source$Parser$ParensGroupingOrArrowParams))),
 			$author$project$Source$Parser$spaces),
-		$elm$parser$Parser$oneOf(
+		$elm$parser$Parser$Advanced$oneOf(
 			_List_fromArray(
 				[
 					A2(
-					$elm$parser$Parser$andThen,
+					$elm$parser$Parser$Advanced$andThen,
 					function (id) {
-						return $elm$parser$Parser$oneOf(
+						return $elm$parser$Parser$Advanced$oneOf(
 							_List_fromArray(
 								[
 									A2(
-									$elm$parser$Parser$keeper,
+									$elm$parser$Parser$Advanced$keeper,
 									A2(
-										$elm$parser$Parser$ignorer,
-										$elm$parser$Parser$succeed($elm$core$Basics$identity),
-										$elm$parser$Parser$symbol(')')),
+										$elm$parser$Parser$Advanced$ignorer,
+										$elm$parser$Parser$Advanced$succeed($elm$core$Basics$identity),
+										A2(
+											$author$project$Source$Parser$symbol,
+											')',
+											$author$project$Source$Parser$ExpectingRParen($author$project$Source$Parser$ParensGroupingOrArrowParams))),
 									A2(
 										$author$project$Source$Parser$optionalArrow,
 										$author$project$Source$AST$Identifier(id),
 										_List_fromArray(
 											[id]))),
 									A2(
-									$elm$parser$Parser$keeper,
-									$elm$parser$Parser$succeed($elm$core$Basics$identity),
+									$elm$parser$Parser$Advanced$keeper,
+									$elm$parser$Parser$Advanced$succeed($elm$core$Basics$identity),
 									A2(
-										$elm$parser$Parser$ignorer,
+										$elm$parser$Parser$Advanced$ignorer,
 										A2(
 											$author$project$Source$Parser$optionalArrow,
 											$author$project$Source$AST$Identifier(id),
 											_List_fromArray(
 												[id])),
-										$elm$parser$Parser$symbol(')'))),
+										A2(
+											$author$project$Source$Parser$symbol,
+											')',
+											$author$project$Source$Parser$ExpectingRParen($author$project$Source$Parser$ParensGrouping)))),
 									A2(
-									$elm$parser$Parser$andThen,
+									$elm$parser$Parser$Advanced$andThen,
 									function (f) {
 										return A2(
-											$elm$parser$Parser$ignorer,
+											$elm$parser$Parser$Advanced$ignorer,
 											A2($author$project$Source$Parser$expressionHelp, _List_Nil, f),
-											$elm$parser$Parser$symbol(')'));
+											A2(
+												$author$project$Source$Parser$symbol,
+												')',
+												$author$project$Source$Parser$ExpectingRParen($author$project$Source$Parser$ParensGrouping)));
 									},
 									A2(
-										$elm$parser$Parser$loop,
+										$elm$parser$Parser$Advanced$loop,
 										$author$project$Source$AST$Identifier(id),
 										$author$project$Source$Parser$callandPropertyAccess)),
 									A2(
-									$elm$parser$Parser$andThen,
+									$elm$parser$Parser$Advanced$andThen,
 									function (xs) {
 										return $author$project$Source$Parser$arrow(
 											A2($elm$core$List$cons, id, xs));
 									},
 									A2(
-										$elm$parser$Parser$keeper,
+										$elm$parser$Parser$Advanced$keeper,
 										A2(
-											$elm$parser$Parser$ignorer,
+											$elm$parser$Parser$Advanced$ignorer,
 											A2(
-												$elm$parser$Parser$ignorer,
-												$elm$parser$Parser$succeed($elm$core$Basics$identity),
-												$elm$parser$Parser$symbol(',')),
+												$elm$parser$Parser$Advanced$ignorer,
+												$elm$parser$Parser$Advanced$succeed($elm$core$Basics$identity),
+												A2($author$project$Source$Parser$symbol, ',', $author$project$Source$Parser$ExpectingArgsSeparator)),
 											$author$project$Source$Parser$spaces),
-										A2($elm$parser$Parser$ignorer, $author$project$Source$Parser$closingNames, $author$project$Source$Parser$spaces)))
+										A2($elm$parser$Parser$Advanced$ignorer, $author$project$Source$Parser$closingNames, $author$project$Source$Parser$spaces)))
 								]));
 					},
 					A2(
-						$elm$parser$Parser$keeper,
-						$elm$parser$Parser$succeed($elm$core$Basics$identity),
-						A2($elm$parser$Parser$ignorer, $author$project$Source$Parser$identifier, $author$project$Source$Parser$spaces))),
+						$elm$parser$Parser$Advanced$keeper,
+						$elm$parser$Parser$Advanced$succeed($elm$core$Basics$identity),
+						A2($elm$parser$Parser$Advanced$ignorer, $author$project$Source$Parser$identifier, $author$project$Source$Parser$spaces))),
 					A2(
-					$elm$parser$Parser$keeper,
+					$elm$parser$Parser$Advanced$keeper,
 					A2(
-						$elm$parser$Parser$ignorer,
+						$elm$parser$Parser$Advanced$ignorer,
 						A2(
-							$elm$parser$Parser$ignorer,
-							$elm$parser$Parser$succeed($elm$core$Basics$identity),
-							$elm$parser$Parser$symbol(')')),
+							$elm$parser$Parser$Advanced$ignorer,
+							$elm$parser$Parser$Advanced$succeed($elm$core$Basics$identity),
+							A2(
+								$author$project$Source$Parser$symbol,
+								')',
+								$author$project$Source$Parser$ExpectingRParen($author$project$Source$Parser$ParensParams))),
 						$author$project$Source$Parser$spaces),
 					$author$project$Source$Parser$arrow(_List_Nil)),
 					A2(
-					$elm$parser$Parser$ignorer,
-					$elm$parser$Parser$lazy(
-						function (_v12) {
+					$elm$parser$Parser$Advanced$ignorer,
+					$elm$parser$Parser$Advanced$lazy(
+						function (_v10) {
 							return $author$project$Source$Parser$cyclic$expression();
 						}),
-					$elm$parser$Parser$symbol(')'))
+					A2(
+						$author$project$Source$Parser$symbol,
+						')',
+						$author$project$Source$Parser$ExpectingRParen($author$project$Source$Parser$ParensGrouping)))
 				])));
 }
 function $author$project$Source$Parser$cyclic$block() {
 	return A2(
-		$elm$parser$Parser$keeper,
+		$elm$parser$Parser$Advanced$keeper,
 		A2(
-			$elm$parser$Parser$ignorer,
+			$elm$parser$Parser$Advanced$ignorer,
 			A2(
-				$elm$parser$Parser$ignorer,
-				$elm$parser$Parser$succeed($elm$core$Basics$identity),
-				$elm$parser$Parser$symbol('{')),
+				$elm$parser$Parser$Advanced$ignorer,
+				$elm$parser$Parser$Advanced$succeed($elm$core$Basics$identity),
+				A2($author$project$Source$Parser$symbol, '{', $author$project$Source$Parser$ExpectingBlockStart)),
 			$author$project$Source$Parser$spaces),
 		A2(
-			$elm$parser$Parser$ignorer,
-			$elm$parser$Parser$lazy(
-				function (_v10) {
+			$elm$parser$Parser$Advanced$ignorer,
+			$elm$parser$Parser$Advanced$lazy(
+				function (_v8) {
 					return $author$project$Source$Parser$cyclic$statements();
 				}),
-			$elm$parser$Parser$symbol('}')));
+			A2($author$project$Source$Parser$symbol, '}', $author$project$Source$Parser$ExpectingBlockEnd)));
 }
 function $author$project$Source$Parser$cyclic$callArgs() {
 	return A2(
-		$elm$parser$Parser$keeper,
-		$elm$parser$Parser$succeed($elm$core$Basics$identity),
-		$elm$parser$Parser$sequence(
+		$elm$parser$Parser$Advanced$keeper,
+		$elm$parser$Parser$Advanced$succeed($elm$core$Basics$identity),
+		$elm$parser$Parser$Advanced$sequence(
 			{
-				end: ')',
-				item: $elm$parser$Parser$lazy(
-					function (_v9) {
-						return $author$project$Source$Parser$cyclic$expression();
-					}),
-				separator: ',',
+				end: A2(
+					$elm$parser$Parser$Advanced$Token,
+					')',
+					$author$project$Source$Parser$ExpectingRParen($author$project$Source$Parser$ParensCall)),
+				item: A2(
+					$author$project$Source$Parser$expecting,
+					$author$project$Source$Parser$ExpectingExpression,
+					$elm$parser$Parser$Advanced$lazy(
+						function (_v7) {
+							return $author$project$Source$Parser$cyclic$expression();
+						})),
+				separator: A2($elm$parser$Parser$Advanced$Token, ',', $author$project$Source$Parser$ExpectingParamsSeparator),
 				spaces: $author$project$Source$Parser$spaces,
-				start: '(',
-				trailing: $elm$parser$Parser$Forbidden
+				start: A2(
+					$elm$parser$Parser$Advanced$Token,
+					'(',
+					$author$project$Source$Parser$ExpectingLParen($author$project$Source$Parser$ParensCall)),
+				trailing: $elm$parser$Parser$Advanced$Forbidden
 			}));
 }
 function $author$project$Source$Parser$cyclic$identifierOrShortArrowExpression() {
 	return A2(
-		$elm$parser$Parser$andThen,
+		$elm$parser$Parser$Advanced$andThen,
 		function (id) {
 			return A2(
 				$author$project$Source$Parser$optionalArrow,
@@ -8785,46 +8947,16 @@ function $author$project$Source$Parser$cyclic$identifierOrShortArrowExpression()
 		$author$project$Source$Parser$identifier);
 }
 function $author$project$Source$Parser$cyclic$statements() {
-	return A2($elm$parser$Parser$loop, _List_Nil, $author$project$Source$Parser$statementsHelp);
-}
-function $author$project$Source$Parser$cyclic$unaryOperation() {
-	return $elm$parser$Parser$oneOf(
-		_List_fromArray(
-			[
-				A2(
-				$elm$parser$Parser$keeper,
-				A2(
-					$elm$parser$Parser$ignorer,
-					A2(
-						$elm$parser$Parser$ignorer,
-						$elm$parser$Parser$succeed(
-							$author$project$Source$AST$UnaryOperation($author$project$Source$AST$BooleanNot)),
-						$elm$parser$Parser$symbol('!')),
-					$author$project$Source$Parser$spaces),
-				$elm$parser$Parser$lazy(
-					function (_v0) {
-						return $author$project$Source$Parser$cyclic$term();
-					})),
-				A2(
-				$elm$parser$Parser$keeper,
-				A2(
-					$elm$parser$Parser$ignorer,
-					A2(
-						$elm$parser$Parser$ignorer,
-						$elm$parser$Parser$succeed(
-							$author$project$Source$AST$UnaryOperation($author$project$Source$AST$UnaryNegation)),
-						$elm$parser$Parser$symbol('-')),
-					$author$project$Source$Parser$spaces),
-				$elm$parser$Parser$lazy(
-					function (_v1) {
-						return $author$project$Source$Parser$cyclic$term();
-					}))
-			]));
+	return A2($elm$parser$Parser$Advanced$loop, _List_Nil, $author$project$Source$Parser$statementsHelp);
 }
 try {
 	var $author$project$Source$Parser$statement = $author$project$Source$Parser$cyclic$statement();
 	$author$project$Source$Parser$cyclic$statement = function () {
 		return $author$project$Source$Parser$statement;
+	};
+	var $author$project$Source$Parser$ifStatement = $author$project$Source$Parser$cyclic$ifStatement();
+	$author$project$Source$Parser$cyclic$ifStatement = function () {
+		return $author$project$Source$Parser$ifStatement;
 	};
 	var $author$project$Source$Parser$expression = $author$project$Source$Parser$cyclic$expression();
 	$author$project$Source$Parser$cyclic$expression = function () {
@@ -8862,25 +8994,17 @@ try {
 	$author$project$Source$Parser$cyclic$statements = function () {
 		return $author$project$Source$Parser$statements;
 	};
-	var $author$project$Source$Parser$unaryOperation = $author$project$Source$Parser$cyclic$unaryOperation();
-	$author$project$Source$Parser$cyclic$unaryOperation = function () {
-		return $author$project$Source$Parser$unaryOperation;
-	};
 } catch ($) {
-	throw 'Some top-level definitions from `Source.Parser` are causing infinite recursion:\n\n  ┌─────┐\n  │    statement\n  │     ↓\n  │    expression\n  │     ↓\n  │    factor\n  │     ↓\n  │    term\n  │     ↓\n  │    array\n  │     ↓\n  │    parenthesizedExpressionOrArrowFunction\n  │     ↓\n  │    arrow\n  │     ↓\n  │    block\n  │     ↓\n  │    callArgs\n  │     ↓\n  │    callandPropertyAccess\n  │     ↓\n  │    expressionHelp\n  │     ↓\n  │    identifierOrShortArrowExpression\n  │     ↓\n  │    optionalArrow\n  │     ↓\n  │    statements\n  │     ↓\n  │    statementsHelp\n  │     ↓\n  │    unaryOperation\n  └─────┘\n\nThese errors are very tricky, so read https://elm-lang.org/0.19.1/bad-recursion to learn how to fix it!';}
+	throw 'Some top-level definitions from `Source.Parser` are causing infinite recursion:\n\n  ┌─────┐\n  │    statement\n  │     ↓\n  │    ifStatement\n  │     ↓\n  │    expression\n  │     ↓\n  │    factor\n  │     ↓\n  │    term\n  │     ↓\n  │    array\n  │     ↓\n  │    parenthesizedExpressionOrArrowFunction\n  │     ↓\n  │    arrow\n  │     ↓\n  │    block\n  │     ↓\n  │    callArgs\n  │     ↓\n  │    callandPropertyAccess\n  │     ↓\n  │    expressionHelp\n  │     ↓\n  │    identifierOrShortArrowExpression\n  │     ↓\n  │    optionalArrow\n  │     ↓\n  │    statements\n  │     ↓\n  │    statementsHelp\n  └─────┘\n\nThese errors are very tricky, so read https://elm-lang.org/0.19.1/bad-recursion to learn how to fix it!';}
 var $author$project$Source$Parser$program = A2(
-	$elm$parser$Parser$andThen,
+	$elm$parser$Parser$Advanced$andThen,
 	function (_v0) {
-		return A2($elm$parser$Parser$ignorer, $author$project$Source$Parser$statements, $elm$parser$Parser$end);
+		return A2(
+			$elm$parser$Parser$Advanced$ignorer,
+			$author$project$Source$Parser$statements,
+			$elm$parser$Parser$Advanced$end($author$project$Source$Parser$ExpectingEnd));
 	},
 	$author$project$Source$Parser$spaces);
-var $elm$parser$Parser$DeadEnd = F3(
-	function (row, col, problem) {
-		return {col: col, problem: problem, row: row};
-	});
-var $elm$parser$Parser$problemToDeadEnd = function (p) {
-	return A3($elm$parser$Parser$DeadEnd, p.row, p.col, p.problem);
-};
 var $elm$parser$Parser$Advanced$bagToList = F2(
 	function (bag, list) {
 		bagToList:
@@ -8921,19 +9045,7 @@ var $elm$parser$Parser$Advanced$run = F2(
 				A2($elm$parser$Parser$Advanced$bagToList, bag, _List_Nil));
 		}
 	});
-var $elm$parser$Parser$run = F2(
-	function (parser, source) {
-		var _v0 = A2($elm$parser$Parser$Advanced$run, parser, source);
-		if (_v0.$ === 'Ok') {
-			var a = _v0.a;
-			return $elm$core$Result$Ok(a);
-		} else {
-			var problems = _v0.a;
-			return $elm$core$Result$Err(
-				A2($elm$core$List$map, $elm$parser$Parser$problemToDeadEnd, problems));
-		}
-	});
-var $author$project$Source$Parser$parse = $elm$parser$Parser$run($author$project$Source$Parser$program);
+var $author$project$Source$Parser$parse = $elm$parser$Parser$Advanced$run($author$project$Source$Parser$program);
 var $elm$html$Html$Attributes$rows = function (n) {
 	return A2(
 		_VirtualDom_attribute,
