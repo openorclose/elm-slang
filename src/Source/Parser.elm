@@ -1,8 +1,89 @@
 module Source.Parser exposing (expression, parse)
 
-import Parser exposing (..)
+import Parser.Advanced exposing (..)
 import Set
 import Source.AST exposing (..)
+
+
+type Problem
+    = ExpectingEnd
+    | ExpectingBlockStart
+    | ExpectingBlockEnd
+    | ExpectingSemi SemiFor
+    | ExpectingKeyword String
+    | ExpectingLParen ParensFor
+    | ExpectingRParen ParensFor
+    | ExpectingArrayStart
+    | ExpectingArrayEnd
+    | ExpectingMemberStart
+    | ExpectingMemberEnd
+    | ExpectingArraySeparator
+    | ExpectingParamsSeparator
+    | ExpectingArgsSeparator
+    | ExpectingIdentifier
+    | ExpectingNumber
+    | ExpectingDeclarationEquals
+    | Never
+    | ExpectingUnary UnaryOperator
+    | ExpectingBinary BinaryOperator
+    | ExpectingArrow
+    | ExpectingStringStart Delimiter
+    | ExpectingStringEnd Delimiter
+    | ExpectingEscapeStart
+    | ExpectingUnicodeStart
+    | ExpectingUnicodeEnd
+    | ExpectingSpecialChar String
+    | UnicodeProblem String
+    | ExpectingTernaryLeft
+    | ExpectingTernaryRight
+    | ExpectingExpression
+    | ExpectingIfTest
+    | ExpectingIfConsequent
+    | ExpectingIfOrBlock
+    | ExpectingExpressionOrBlock
+
+
+type EscapeSequence
+    = EscapeTodo
+
+
+type Delimiter
+    = SingleQuote
+    | DoubleQuote
+    | Backtick
+
+
+type ParensFor
+    = ParensParams
+    | ParensIf
+    | ParensWhile
+    | ParensFor
+    | ParensCall
+    | ParensGrouping
+    | ParensGroupingOrArrowParams
+
+
+type SemiFor
+    = EndOfBreak
+    | EndOfContinue
+    | EndOfReturn
+    | EndOfExpressionStatement
+    | EndOfDeclaration
+    | EndForInit
+    | EndForTest
+
+
+type Context
+    = InReturn
+    | InDeclaration DeclarationType String
+
+
+type alias Parser a =
+    Parser.Advanced.Parser Context Problem a
+
+
+type alias DeadEnd =
+    Parser.Advanced.DeadEnd Context Problem
 
 
 spaces : Parser ()
@@ -27,7 +108,7 @@ parse =
 
 program : Parser (List Statement)
 program =
-    spaces |> andThen (\_ -> statements |. end)
+    spaces |> andThen (\_ -> statements |. end ExpectingEnd)
 
 
 statements : Parser (List Statement)
@@ -49,51 +130,79 @@ statementsHelp revStmts =
 block : Parser (List Statement)
 block =
     succeed identity
-        |. symbol "{"
+        |. symbol "{" ExpectingBlockStart
         |. spaces
         |= lazy (\_ -> statements)
-        |. symbol "}"
+        |. symbol "}" ExpectingBlockEnd
+
+
+symbol : String -> Problem -> Parser ()
+symbol token problem =
+    Parser.Advanced.symbol (Token token problem)
+
+
+keyword : String -> Parser ()
+keyword word =
+    Parser.Advanced.keyword (Token word (ExpectingKeyword word))
 
 
 statement : Parser Statement
 statement =
     oneOf
-        [ succeed Break |. keyword "break" |. spaces |. symbol ";"
-        , succeed Continue |. keyword "continue" |. spaces |. symbol ";"
-        , succeed Return |. keyword "return" |. noLineTerminator |= expression |. spaces |. symbol ";"
-        , succeed ExpressionStatement |= expression |. spaces |. symbol ";"
+        [ succeed Break
+            |. keyword "break"
+            |. spaces
+            |. symbol ";" (ExpectingSemi EndOfBreak)
+        , succeed Continue
+            |. keyword "continue"
+            |. spaces
+            |. symbol ";" (ExpectingSemi EndOfContinue)
+        , inContext InReturn <|
+            succeed Return
+                |. keyword "return"
+                |. noLineTerminator
+                |= expression
+                |. spaces
+                |. symbol ";" (ExpectingSemi EndOfReturn)
         , succeed (\id params body -> Declaration Const id (ArrowFunctionExpressionBlockBody params body))
             |. keyword "function"
             |. spaces
             |= identifier
             |. spaces
-            |. symbol "("
+            |. symbol "(" (ExpectingLParen ParensParams)
             |. spaces
             |= closingNames
             |. spaces
             |= block
-        , succeed Declaration
-            |= oneOf
-                [ succeed Const |. keyword "const"
-                , succeed Let |. keyword "let"
-                ]
+        , oneOf
+            [ succeed Const |. keyword "const"
+            , succeed Let |. keyword "let"
+            ]
             |. spaces
-            |= identifier
-            |. spaces
-            |. symbol "="
-            |. spaces
-            |= expression
-            |. symbol ";"
+            |> andThen
+                (\t ->
+                    identifier
+                        |. spaces
+                        |> andThen
+                            (\id ->
+                                inContext (InDeclaration t id) <|
+                                    succeed (Declaration t id)
+                                        |. symbol "=" ExpectingDeclarationEquals
+                                        |. spaces
+                                        |= expecting ExpectingExpression expression
+                                        |. symbol ";" (ExpectingSemi EndOfDeclaration)
+                            )
+                )
         , succeed BlockStatement
             |= block
         , succeed WhileStatement
             |. keyword "while"
             |. spaces
-            |. symbol "("
+            |. symbol "(" (ExpectingLParen ParensWhile)
             |. spaces
             |= expression
             |. spaces
-            |. symbol ")"
+            |. symbol ")" (ExpectingRParen ParensWhile)
             |. spaces
             |= block
         , succeed
@@ -107,42 +216,65 @@ statement =
             )
             |. keyword "for"
             |. spaces
-            |. symbol "("
+            |. symbol "(" (ExpectingLParen ParensFor)
             |. spaces
             |= expression
             |. spaces
-            |. symbol ";"
+            |. symbol ";" (ExpectingSemi EndForInit)
             |. spaces
             |= expression
             |. spaces
-            |. symbol ";"
+            |. symbol ";" (ExpectingSemi EndForTest)
             |. spaces
             |= expression
             |. spaces
-            |. symbol ")"
+            |. symbol ")" (ExpectingRParen ParensFor)
             |. spaces
             |= block
-        , succeed
-            (\test consequent alternate ->
-                IfStatement
-                    { test = test
-                    , consequent = consequent
-                    , alternate = alternate
-                    }
+        , ifStatement
+        , succeed ExpressionStatement
+            |= expression
+            |. spaces
+            |. symbol ";" (ExpectingSemi EndOfExpressionStatement)
+
+        --, expecting ExpectingStatement
+        ]
+
+
+ifStatement =
+    succeed
+        (\test consequent alternate ->
+            IfStatement
+                { test = test
+                , consequent = consequent
+                , alternate = alternate
+                }
+        )
+        |. keyword "if"
+        |. spaces
+        |. symbol "(" (ExpectingLParen ParensIf)
+        |. spaces
+        |= expecting ExpectingIfTest expression
+        |. spaces
+        |. symbol ")" (ExpectingRParen ParensIf)
+        |. spaces
+        |= expecting ExpectingIfConsequent (map BlockStatement block)
+        |. spaces
+        |. keyword "else"
+        |. spaces
+        |= expecting ExpectingIfOrBlock
+            (oneOf
+                [ lazy <| \_ -> ifStatement
+                , map BlockStatement block
+                ]
             )
-            |. keyword "if"
-            |. spaces
-            |. symbol "("
-            |. spaces
-            |= expression
-            |. spaces
-            |. symbol ")"
-            |. spaces
-            |= block
-            |. spaces
-            |. keyword "else"
-            |. spaces
-            |= block
+
+
+expecting : Problem -> Parser a -> Parser a
+expecting orElse toBe =
+    oneOf
+        [ toBe
+        , commit () |> andThen (\_ -> problem orElse)
         ]
 
 
@@ -154,16 +286,8 @@ term =
         , number
         , string
         , identifierOrShortArrowExpression
-        , unaryOperation
         , array
         , parenthesizedExpressionOrArrowFunction
-        ]
-
-
-unaryOperation =
-    oneOf
-        [ succeed (UnaryOperation BooleanNot) |. symbol "!" |. spaces |= lazy (\_ -> term)
-        , succeed (UnaryOperation UnaryNegation) |. symbol "-" |. spaces |= lazy (\_ -> term)
         ]
 
 
@@ -183,18 +307,20 @@ optionalArrow exprIfNoArrow paramsIfArrow =
 arrow : List String -> Parser Expression
 arrow paramsIfArrow =
     succeed identity
-        |. symbol "=>"
+        |. symbol "=>" ExpectingArrow
         |. spaces
-        |= oneOf
-            [ succeed (ArrowFunctionExpression paramsIfArrow) |= lazy (\_ -> expression)
-            , succeed (ArrowFunctionExpressionBlockBody paramsIfArrow) |= block
-            ]
+        |= expecting ExpectingExpressionOrBlock
+            (oneOf
+                [ succeed (ArrowFunctionExpression paramsIfArrow) |= lazy (\_ -> expression)
+                , succeed (ArrowFunctionExpressionBlockBody paramsIfArrow) |= block
+                ]
+            )
 
 
 parenthesizedExpressionOrArrowFunction : Parser Expression
 parenthesizedExpressionOrArrowFunction =
     succeed identity
-        |. symbol "("
+        |. symbol "(" (ExpectingLParen ParensGroupingOrArrowParams)
         |. spaces
         |= oneOf
             [ succeed identity
@@ -203,30 +329,30 @@ parenthesizedExpressionOrArrowFunction =
                 |> andThen
                     (\id ->
                         oneOf
-                            [ succeed identity |. symbol ")" |= optionalArrow (Identifier id) [ id ]
-                            , succeed identity |= optionalArrow (Identifier id) [ id ] |. symbol ")"
-                            , loop (Identifier id) callandPropertyAccess |> andThen (\f -> expressionHelp [] f |. symbol ")")
+                            [ succeed identity |. symbol ")" (ExpectingRParen ParensGroupingOrArrowParams) |= optionalArrow (Identifier id) [ id ]
+                            , succeed identity |= optionalArrow (Identifier id) [ id ] |. symbol ")" (ExpectingRParen ParensGrouping)
+                            , loop (Identifier id) callandPropertyAccess |> andThen (\f -> expressionHelp [] f |. symbol ")" (ExpectingRParen ParensGrouping))
                             , succeed identity
-                                |. symbol ","
+                                |. symbol "," ExpectingArgsSeparator
                                 |. spaces
                                 |= closingNames
                                 |. spaces
                                 |> andThen (\xs -> arrow (id :: xs))
                             ]
                     )
-            , succeed identity |. symbol ")" |. spaces |= arrow []
-            , lazy (\_ -> expression) |. symbol ")"
+            , succeed identity |. symbol ")" (ExpectingRParen ParensParams) |. spaces |= arrow []
+            , lazy (\_ -> expression) |. symbol ")" (ExpectingRParen ParensGrouping)
             ]
 
 
 closingNames : Parser (List String)
 closingNames =
     sequence
-        { start = ""
-        , end = ")"
+        { start = Token "" Never
+        , end = Token ")" (ExpectingRParen ParensParams)
         , item = identifier
         , trailing = Forbidden
-        , separator = ","
+        , separator = Token "," ExpectingParamsSeparator
         , spaces = spaces
         }
 
@@ -235,11 +361,11 @@ callArgs : Parser (List Expression)
 callArgs =
     succeed identity
         |= sequence
-            { start = "("
-            , separator = ","
-            , end = ")"
+            { start = Token "(" (ExpectingLParen ParensCall)
+            , separator = Token "," ExpectingParamsSeparator
+            , end = Token ")" (ExpectingRParen ParensCall)
             , spaces = spaces
-            , item = lazy (\_ -> expression)
+            , item = expecting ExpectingExpression <| lazy (\_ -> expression)
             , trailing = Forbidden
             }
 
@@ -248,11 +374,11 @@ array : Parser Expression
 array =
     succeed JsArray
         |= sequence
-            { start = "["
-            , separator = ","
-            , end = "]"
+            { start = Token "[" ExpectingArrayStart
+            , separator = Token "," ExpectingArraySeparator
+            , end = Token "]" ExpectingArrayEnd
             , spaces = spaces
-            , item = lazy (\_ -> expression)
+            , item = expecting ExpectingExpression <| lazy (\_ -> expression)
             , trailing = Forbidden
             }
 
@@ -264,50 +390,63 @@ identifier =
             { start = \c -> Char.isAlpha c || List.any ((==) c) [ '_', '$' ]
             , inner = \c -> Char.isAlphaNum c || List.any ((==) c) [ '_', '$' ]
             , reserved = reserved
+            , expecting = ExpectingIdentifier
             }
 
 
 null : Parser Expression
 null =
-    succeed Null |. symbol "null"
+    succeed Null |. keyword "null"
 
 
 boolean : Parser Expression
 boolean =
     oneOf
-        [ succeed (Boolean True) |. symbol "true"
-        , succeed (Boolean False) |. symbol "false"
+        [ succeed (Boolean True) |. keyword "true"
+        , succeed (Boolean False) |. keyword "false"
         ]
 
 
 number : Parser Expression
 number =
-    succeed Number
-        |= Parser.float
+    Parser.Advanced.number
+        { int = Ok (toFloat >> Number)
+        , hex = Ok (toFloat >> Number)
+        , octal = Ok (toFloat >> Number)
+        , binary = Ok (toFloat >> Number)
+        , float = Ok Number
+        , invalid = Never
+        , expecting = ExpectingNumber
+        }
 
 
 string : Parser Expression
 string =
     succeed JsString
-        |. token "\""
+        |. symbol "\"" (ExpectingStringStart DoubleQuote)
         |= loop [] stringHelp
+
+
+specialChar : String -> Parser ()
+specialChar c =
+    symbol c (ExpectingSpecialChar c)
 
 
 stringHelp : List String -> Parser (Step (List String) String)
 stringHelp revChunks =
     oneOf
         [ succeed (\chunk -> Loop (chunk :: revChunks))
-            |. token "\\"
+            |. symbol "\\" ExpectingEscapeStart
             |= oneOf
-                [ map (\_ -> "\n") (token "n")
-                , map (\_ -> "\t") (token "t")
-                , map (\_ -> "\u{000D}") (token "r")
+                [ map (\_ -> "\n") (specialChar "n")
+                , map (\_ -> "\t") (specialChar "t")
+                , map (\_ -> "\u{000D}") (specialChar "r")
                 , succeed String.fromChar
-                    |. token "u{"
+                    |. symbol "u{" ExpectingUnicodeStart
                     |= unicode
-                    |. token "}"
+                    |. symbol "}" ExpectingUnicodeEnd
                 ]
-        , token "\""
+        , symbol "\"" (ExpectingStringEnd DoubleQuote)
             |> map (\_ -> Done (String.join "" (List.reverse revChunks)))
         , chompWhile isUninteresting
             |> getChompedString
@@ -340,13 +479,13 @@ codeToChar str =
             String.foldl addHex 0 str
     in
     if 4 <= length && length <= 6 then
-        problem "code point must have between 4 and 6 digits"
+        problem <| UnicodeProblem "code point must have between 4 and 6 digits"
 
     else if 0 <= code && code <= 0x0010FFFF then
         succeed (Char.fromCode code)
 
     else
-        problem "code point must be between 0 and 0x10FFFF"
+        problem <| UnicodeProblem "code point must be between 0 and 0x10FFFF"
 
 
 addHex : Char -> Int -> Int
@@ -369,8 +508,8 @@ factor : Parser Expression
 factor =
     succeed identity
         |= oneOf
-            [ succeed (UnaryOperation BooleanNot) |. symbol "!" |. spaces |= lazy (\_ -> factor)
-            , succeed (UnaryOperation UnaryNegation) |. symbol "-" |. spaces |= lazy (\_ -> factor)
+            [ succeed (UnaryOperation BooleanNot) |. symbol "!" (ExpectingUnary BooleanNot) |. spaces |= lazy (\_ -> factor)
+            , succeed (UnaryOperation UnaryNegation) |. symbol "-" (ExpectingUnary UnaryNegation) |. spaces |= lazy (\_ -> factor)
             , term |> andThen (\t -> loop t callandPropertyAccess)
             ]
 
@@ -379,9 +518,9 @@ callandPropertyAccess expr =
     oneOf
         [ map (\args -> Loop <| Call expr args) callArgs
         , succeed (\property -> Loop <| PropertyAccess { object = expr, property = property })
-            |. symbol "["
+            |. symbol "[" ExpectingMemberStart
             |= lazy (\_ -> expression)
-            |. symbol "]"
+            |. symbol "]" ExpectingMemberEnd
         , map (\_ -> Done expr) (succeed ())
         ]
 
@@ -403,11 +542,11 @@ expressionHelp revOps expr =
                 |= factor
                 |> andThen (\( op, newExpr ) -> expressionHelp (( expr, op ) :: revOps) newExpr)
             , succeed (\c a -> ConditionalExpression { test = expr, consequent = c, alternate = a })
-                |. symbol "?"
+                |. symbol "?" ExpectingTernaryLeft
                 |. spaces
                 |= lazy (\_ -> expression)
                 |. spaces
-                |. symbol ":"
+                |. symbol ":" ExpectingTernaryRight
                 |. spaces
                 |= lazy (\_ -> expression)
             , lazy (\_ -> succeed (finalize revOps [] [ expr ]))
@@ -466,23 +605,27 @@ precedences =
     ]
 
 
+parseBinOp constructor op =
+    succeed constructor |. symbol op (ExpectingBinary constructor)
+
+
 operator : Parser BinaryOperator
 operator =
     oneOf
-        [ succeed TimesOp |. symbol "*"
-        , succeed DivideOp |. symbol "/"
-        , succeed RemainderOp |. symbol "%"
-        , succeed PlusOp |. symbol "+"
-        , succeed MinusOp |. symbol "-"
-        , succeed EqualsOp |. symbol "==="
-        , succeed NotEqualsOp |. symbol "!=="
-        , succeed LessThanEqualOp |. symbol "<="
-        , succeed LessThanOp |. symbol "<"
-        , succeed GreaterThanEqualOp |. symbol ">="
-        , succeed GreaterThanOp |. symbol ">"
-        , succeed AssignmentOp |. symbol "="
-        , succeed OrOp |. symbol "||"
-        , succeed AndOp |. symbol "&&"
+        [ parseBinOp TimesOp "*"
+        , parseBinOp DivideOp "/"
+        , parseBinOp RemainderOp "%"
+        , parseBinOp PlusOp "+"
+        , parseBinOp MinusOp "-"
+        , parseBinOp EqualsOp "==="
+        , parseBinOp NotEqualsOp "!=="
+        , parseBinOp LessThanEqualOp "<="
+        , parseBinOp LessThanOp "<"
+        , parseBinOp GreaterThanEqualOp ">="
+        , parseBinOp GreaterThanOp ">"
+        , parseBinOp AssignmentOp "="
+        , parseBinOp OrOp "||"
+        , parseBinOp AndOp "&&"
         ]
 
 

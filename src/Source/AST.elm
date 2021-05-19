@@ -10,7 +10,7 @@ type Statement
     = ExpressionStatement Expression
     | Declaration DeclarationType String Expression
     | BlockStatement (List Statement)
-    | IfStatement { test : Expression, consequent : List Statement, alternate : List Statement }
+    | IfStatement { test : Expression, consequent : Statement, alternate : Statement }
     | WhileStatement Expression (List Statement)
     | ForStatement { init : Expression, test : Expression, update : Expression, body : List Statement }
     | Break

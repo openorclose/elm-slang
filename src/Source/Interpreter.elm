@@ -103,10 +103,10 @@ evaluateStatement statement frames store =
         IfStatement { test, consequent, alternate } ->
             case evaluateExpression test frames store of
                 Ok ( Value.Boolean True, nextStore ) ->
-                    evaluateStatements consequent frames nextStore |> insertFrames
+                    evaluateStatement consequent frames nextStore
 
                 Ok ( Value.Boolean False, nextStore ) ->
-                    evaluateStatements alternate frames nextStore |> insertFrames
+                    evaluateStatement alternate frames nextStore
 
                 Ok _ ->
                     Err "test condition must be bool"
@@ -307,7 +307,7 @@ evaluateExpression expression frames store =
                                                 Ok ( value, Array.set ref (Variable value) nextStore )
 
                                     Err err ->
-                                        Err "unreachable"
+                                        Err err
 
                     _ ->
                         Err "wrong LHS for ="
