@@ -261,10 +261,18 @@ evaluateExpression expression frames store =
                     Err err
 
         ArrowFunctionExpression strings body ->
-            Ok ( Value.Function strings [ Return body ] frames, store )
+            Ok
+                ( Value.Function strings
+                    (case body of
+                        ArrowBodyBlock ss ->
+                            ss
 
-        ArrowFunctionExpressionBlockBody strings statements ->
-            Ok ( Value.Function strings statements frames, store )
+                        ArrowBodyExpression e ->
+                            [ Return e ]
+                    )
+                    frames
+                , store
+                )
 
         UnaryOperation operator argument ->
             case evaluateExpression argument frames store of

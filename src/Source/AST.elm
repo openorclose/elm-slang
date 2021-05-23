@@ -27,11 +27,15 @@ type Expression
     | JsArray (List Expression)
     | Call Expression (List Expression)
     | PropertyAccess { object : Expression, property : Expression }
-    | ArrowFunctionExpression (List String) Expression
-    | ArrowFunctionExpressionBlockBody (List String) (List Statement)
+    | ArrowFunctionExpression (List String) ArrowBody
     | UnaryOperation UnaryOperator Expression
     | BinaryOperation { operator : BinaryOperator, left : Expression, right : Expression }
     | ConditionalExpression { test : Expression, consequent : Expression, alternate : Expression }
+
+
+type ArrowBody
+    = ArrowBodyExpression Expression
+    | ArrowBodyBlock (List Statement)
 
 
 type UnaryOperator

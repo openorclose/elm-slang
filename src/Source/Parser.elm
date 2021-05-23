@@ -1,4 +1,4 @@
-module Source.Parser exposing (expression, parse)
+module Source.Parser exposing (dump, dumpCodeSnippet, expression, parse)
 
 import Parser.Advanced exposing (..)
 import Set
@@ -23,7 +23,7 @@ type Problem
     | ExpectingIdentifier
     | ExpectingNumber
     | ExpectingDeclarationEquals
-    | Never
+    | Unreachable
     | ExpectingUnary UnaryOperator
     | ExpectingBinary BinaryOperator
     | ExpectingArrow
@@ -37,14 +37,35 @@ type Problem
     | ExpectingTernaryLeft
     | ExpectingTernaryRight
     | ExpectingExpression
-    | ExpectingIfTest
-    | ExpectingIfConsequent
+    | ExpectingIfTest IfType
+    | ExpectingIfConsequent IfType
+    | ExpectingTernaryAlternative
+    | ExpectingTernaryConsequent
     | ExpectingIfOrBlock
     | ExpectingExpressionOrBlock
+    | ExpectingArrayElementOrArrayEnd
+    | ExpectingArrowFunctionParamsOrParenthesizedExpression
+    | ExpectingCommaOrArrayEnd
+    | ExpectingMultiCommentStart
+    | ExpectingMultiCommentEnd
+    | ExpectingNoLineTerminator NoLineTerminator
+    | ExpectingNoSemicolon
+    | ExpectingRightBinaryOperand BinaryOperator
+    | LocatedAt ( Int, Int ) Problem
+
+
+type IfType
+    = If
+    | ElseIf
 
 
 type EscapeSequence
     = EscapeTodo
+
+
+type NoLineTerminator
+    = AfterReturn
+    | BetweenParamsAndArrow
 
 
 type Delimiter
@@ -76,6 +97,19 @@ type SemiFor
 type Context
     = InReturn
     | InDeclaration DeclarationType String
+    | InWhile
+    | InIf IfType
+    | InElse
+    | InFor
+    | InBlock
+    | InArrow
+    | BeforeFunctionDeclaration
+    | InFunctionDeclaration String
+    | InExpressionStatement
+    | InBinary
+    | InString Delimiter
+    | InMultiline
+    | InArray
 
 
 type alias Parser a =
@@ -84,16 +118,6 @@ type alias Parser a =
 
 type alias DeadEnd =
     Parser.Advanced.DeadEnd Context Problem
-
-
-spaces : Parser ()
-spaces =
-    chompWhile (\c -> c == ' ' || c == '\n' || c == '\u{000D}' || c == '\t')
-
-
-noLineTerminator : Parser ()
-noLineTerminator =
-    chompWhile (\c -> c == ' ' || c == '\t')
 
 
 reserved : Set.Set String
@@ -109,6 +133,133 @@ parse =
 program : Parser (List Statement)
 program =
     spaces |> andThen (\_ -> statements |. end ExpectingEnd)
+
+
+
+-- Semicolons
+
+
+noEmptyStatement : Parser ()
+noEmptyStatement =
+    succeed Tuple.pair
+        |. spaces
+        |= getPosition
+        |= oneOf
+            [ succeed True |. symbol ";" Unreachable
+            , succeed False
+            ]
+        |> andThen
+            (\( pos, hasSemi ) ->
+                if hasSemi then
+                    problem <| LocatedAt pos ExpectingNoSemicolon
+
+                else
+                    succeed ()
+            )
+
+
+
+-- Whitespace
+
+
+type NewLineInfo
+    = NoNewLine
+    | FirstNewLineAt ( Int, Int )
+
+
+spaces : Parser ()
+spaces =
+    succeed () |. spacesCheckLineTerminator
+
+
+spacesCheckLineTerminator : Parser NewLineInfo
+spacesCheckLineTerminator =
+    loop ( 0, NoNewLine ) <|
+        ifProgress <|
+            oneOf
+                [ succeed FirstNewLineAt |. lineComment |= getPosition
+                , multilineCheckLineTerminator
+                , succeed FirstNewLineAt |. symbol "\n" Unreachable |= getPosition
+                , succeed FirstNewLineAt |. symbol "\u{000D}" Unreachable |= getPosition
+                , succeed NoNewLine |. chompWhile (\c -> c == ' ' || c == '\t')
+                ]
+
+
+lineComment : Parser ()
+lineComment =
+    symbol "//" Unreachable |. lineCommentHelper
+
+
+lineCommentHelper : Parser ()
+lineCommentHelper =
+    oneOf
+        [ end Unreachable
+        , symbol "\n" Unreachable
+        , chompIf (\_ -> True) Unreachable |. lazy (\_ -> lineCommentHelper)
+        ]
+
+
+ifProgress : Parser NewLineInfo -> ( Int, NewLineInfo ) -> Parser (Step ( Int, NewLineInfo ) NewLineInfo)
+ifProgress parser ( offset, prevNewLineInfo ) =
+    parser
+        |> andThen
+            (\newLineInfo ->
+                succeed
+                    (\newOffset ->
+                        if offset == newOffset then
+                            Done prevNewLineInfo
+
+                        else
+                            Loop
+                                ( newOffset
+                                , case prevNewLineInfo of
+                                    NoNewLine ->
+                                        newLineInfo
+
+                                    FirstNewLineAt pos ->
+                                        FirstNewLineAt pos
+                                )
+                    )
+                    |= getOffset
+            )
+
+
+noLineTerminator : NoLineTerminator -> Parser ()
+noLineTerminator location =
+    spacesCheckLineTerminator
+        |> andThen
+            (\newLineInfo ->
+                case newLineInfo of
+                    NoNewLine ->
+                        succeed ()
+
+                    FirstNewLineAt pos ->
+                        problem <| LocatedAt pos <| ExpectingNoLineTerminator location
+            )
+
+
+multilineCheckLineTerminator : Parser NewLineInfo
+multilineCheckLineTerminator =
+    symbol "/*" ExpectingMultiCommentStart |> andThen (\_ -> multilineCheckLineTerminatorHelper NoNewLine) |> inContext InMultiline
+
+
+multilineCheckLineTerminatorHelper : NewLineInfo -> Parser NewLineInfo
+multilineCheckLineTerminatorHelper newLineInfo =
+    expecting ExpectingMultiCommentEnd <|
+        oneOf
+            [ succeed newLineInfo |. symbol "*/" Unreachable
+            , chompIf (\c -> c /= '\n') Unreachable |> andThen (\_ -> multilineCheckLineTerminatorHelper newLineInfo)
+            , chompIf (\c -> c == '\n') Unreachable
+                |> andThen
+                    (\_ ->
+                        case newLineInfo of
+                            NoNewLine ->
+                                succeed FirstNewLineAt |= getPosition |. multilineCheckLineTerminatorHelper NoNewLine
+
+                            FirstNewLineAt pos ->
+                                multilineCheckLineTerminatorHelper (FirstNewLineAt pos)
+                    )
+            ]
 
 
 statements : Parser (List Statement)
@@ -160,20 +311,24 @@ statement =
         , inContext InReturn <|
             succeed Return
                 |. keyword "return"
-                |. noLineTerminator
-                |= expression
+                |. noLineTerminator AfterReturn
+                |= expecting ExpectingExpression expression
                 |. spaces
                 |. symbol ";" (ExpectingSemi EndOfReturn)
-        , succeed (\id params body -> Declaration Const id (ArrowFunctionExpressionBlockBody params body))
-            |. keyword "function"
-            |. spaces
-            |= identifier
-            |. spaces
-            |. symbol "(" (ExpectingLParen ParensParams)
-            |. spaces
-            |= closingNames
-            |. spaces
-            |= block
+        , (succeed identity |. keyword "function" |. spaces |= identifier)
+            |> andThen
+                (\id ->
+                    inContext (InFunctionDeclaration id) <|
+                        succeed (\params body -> Declaration Const id <| ArrowFunctionExpression params <| ArrowBodyBlock body)
+                            |. spaces
+                            |. symbol "(" (ExpectingLParen ParensParams)
+                            |. spaces
+                            |= closingNames
+                            |. spaces
+                            |= block
+                            |. noEmptyStatement
+                )
+            |> inContext BeforeFunctionDeclaration
         , oneOf
             [ succeed Const |. keyword "const"
             , succeed Let |. keyword "let"
@@ -193,8 +348,10 @@ statement =
                                         |. symbol ";" (ExpectingSemi EndOfDeclaration)
                             )
                 )
-        , succeed BlockStatement
-            |= block
+        , inContext InBlock <|
+            succeed BlockStatement
+                |= block
+                |. noEmptyStatement
         , succeed WhileStatement
             |. keyword "while"
             |. spaces
@@ -205,6 +362,7 @@ statement =
             |. symbol ")" (ExpectingRParen ParensWhile)
             |. spaces
             |= block
+            |. noEmptyStatement
         , succeed
             (\init test update body ->
                 ForStatement
@@ -231,43 +389,51 @@ statement =
             |. symbol ")" (ExpectingRParen ParensFor)
             |. spaces
             |= block
-        , ifStatement
-        , succeed ExpressionStatement
-            |= expression
-            |. spaces
-            |. symbol ";" (ExpectingSemi EndOfExpressionStatement)
+            |. noEmptyStatement
+        , ifStatement If
+        , inContext InExpressionStatement <|
+            succeed ExpressionStatement
+                |= expression
+                |. spaces
+                |. symbol ";" (ExpectingSemi EndOfExpressionStatement)
 
         --, expecting ExpectingStatement
         ]
 
 
-ifStatement =
-    succeed
-        (\test consequent alternate ->
-            IfStatement
-                { test = test
-                , consequent = consequent
-                , alternate = alternate
-                }
-        )
-        |. keyword "if"
-        |. spaces
-        |. symbol "(" (ExpectingLParen ParensIf)
-        |. spaces
-        |= expecting ExpectingIfTest expression
-        |. spaces
-        |. symbol ")" (ExpectingRParen ParensIf)
-        |. spaces
-        |= expecting ExpectingIfConsequent (map BlockStatement block)
-        |. spaces
-        |. keyword "else"
-        |. spaces
-        |= expecting ExpectingIfOrBlock
-            (oneOf
-                [ lazy <| \_ -> ifStatement
-                , map BlockStatement block
-                ]
+ifStatement ifType =
+    inContext (InIf ifType) <|
+        succeed
+            (\test consequent alternate ->
+                IfStatement
+                    { test = test
+                    , consequent = consequent
+                    , alternate = alternate
+                    }
             )
+            |. keyword "if"
+            |. spaces
+            |. symbol "(" (ExpectingLParen ParensIf)
+            |. spaces
+            |= expecting
+                (ExpectingIfTest ifType)
+                expression
+            |. spaces
+            |. symbol ")" (ExpectingRParen ParensIf)
+            |. spaces
+            |= expecting
+                (ExpectingIfConsequent ifType)
+                (inContext InBlock (map BlockStatement block))
+            |. spaces
+            |. keyword "else"
+            |. spaces
+            |= expecting ExpectingIfOrBlock
+                (oneOf
+                    [ lazy <| \_ -> ifStatement ElseIf
+                    , inContext InBlock <| map BlockStatement block
+                    ]
+                )
+            |. noEmptyStatement
 
 
 expecting : Problem -> Parser a -> Parser a
@@ -296,12 +462,30 @@ identifierOrShortArrowExpression =
     identifier |> andThen (\id -> optionalArrow (Identifier id) [ id ])
 
 
+problemIfNewLineBeforeArrow : NewLineInfo -> Expression -> Parser Expression
+problemIfNewLineBeforeArrow newLineInfo expr =
+    case ( newLineInfo, expr ) of
+        ( NoNewLine, _ ) ->
+            succeed expr
+
+        ( FirstNewLineAt pos, ArrowFunctionExpression _ _ ) ->
+            problem <| LocatedAt pos <| ExpectingNoLineTerminator BetweenParamsAndArrow
+
+        ( FirstNewLineAt _, _ ) ->
+            succeed expr
+
+
 optionalArrow : Expression -> List String -> Parser Expression
 optionalArrow exprIfNoArrow paramsIfArrow =
-    succeed identity
-        |. spaces
-        |= oneOf
-            [ arrow paramsIfArrow, succeed exprIfNoArrow ]
+    spacesCheckLineTerminator
+        |> andThen
+            (\newLineInfo ->
+                oneOf
+                    [ inContext InArrow <| arrow paramsIfArrow
+                    , succeed exprIfNoArrow
+                    ]
+                    |> andThen (problemIfNewLineBeforeArrow newLineInfo)
+            )
 
 
 arrow : List String -> Parser Expression
@@ -311,8 +495,8 @@ arrow paramsIfArrow =
         |. spaces
         |= expecting ExpectingExpressionOrBlock
             (oneOf
-                [ succeed (ArrowFunctionExpression paramsIfArrow) |= lazy (\_ -> expression)
-                , succeed (ArrowFunctionExpressionBlockBody paramsIfArrow) |= block
+                [ succeed (\expr -> ArrowFunctionExpression paramsIfArrow <| ArrowBodyExpression expr) |= lazy (\_ -> expression)
+                , succeed (\ss -> ArrowFunctionExpression paramsIfArrow <| ArrowBodyBlock ss) |= block
                 ]
             )
 
@@ -322,33 +506,36 @@ parenthesizedExpressionOrArrowFunction =
     succeed identity
         |. symbol "(" (ExpectingLParen ParensGroupingOrArrowParams)
         |. spaces
-        |= oneOf
-            [ succeed identity
-                |= identifier
-                |. spaces
-                |> andThen
-                    (\id ->
-                        oneOf
-                            [ succeed identity |. symbol ")" (ExpectingRParen ParensGroupingOrArrowParams) |= optionalArrow (Identifier id) [ id ]
-                            , succeed identity |= optionalArrow (Identifier id) [ id ] |. symbol ")" (ExpectingRParen ParensGrouping)
-                            , loop (Identifier id) callandPropertyAccess |> andThen (\f -> expressionHelp [] f |. symbol ")" (ExpectingRParen ParensGrouping))
-                            , succeed identity
-                                |. symbol "," ExpectingArgsSeparator
-                                |. spaces
-                                |= closingNames
-                                |. spaces
-                                |> andThen (\xs -> arrow (id :: xs))
-                            ]
-                    )
-            , succeed identity |. symbol ")" (ExpectingRParen ParensParams) |. spaces |= arrow []
-            , lazy (\_ -> expression) |. symbol ")" (ExpectingRParen ParensGrouping)
-            ]
+        |= expecting ExpectingArrowFunctionParamsOrParenthesizedExpression
+            (oneOf
+                [ succeed Tuple.pair
+                    |= identifier
+                    |= spacesCheckLineTerminator
+                    |> andThen
+                        (\( id, newLineInfo ) ->
+                            oneOf
+                                [ succeed identity |. symbol ")" (ExpectingRParen ParensGroupingOrArrowParams) |= optionalArrow (Identifier id) [ id ]
+                                , succeed identity |= optionalArrow (Identifier id) [ id ] |. symbol ")" (ExpectingRParen ParensGrouping)
+                                , loop (Identifier id) callandPropertyAccess |> andThen (\f -> expressionHelp [] f |. symbol ")" (ExpectingRParen ParensGrouping))
+                                , succeed identity
+                                    |. symbol "," ExpectingArgsSeparator
+                                    |. spaces
+                                    |= closingNames
+                                    |. spaces
+                                    |> andThen (\xs -> arrow (id :: xs))
+                                ]
+                                |> andThen (problemIfNewLineBeforeArrow newLineInfo)
+                        )
+                , succeed identity |. symbol ")" (ExpectingRParen ParensParams) |. noLineTerminator BetweenParamsAndArrow |= arrow []
+                , lazy (\_ -> expression) |. symbol ")" (ExpectingRParen ParensGrouping)
+                ]
+            )
 
 
 closingNames : Parser (List String)
 closingNames =
     sequence
-        { start = Token "" Never
+        { start = Token "" Unreachable
         , end = Token ")" (ExpectingRParen ParensParams)
         , item = identifier
         , trailing = Forbidden
@@ -372,15 +559,30 @@ callArgs =
 
 array : Parser Expression
 array =
-    succeed JsArray
-        |= sequence
-            { start = Token "[" ExpectingArrayStart
-            , separator = Token "," ExpectingArraySeparator
-            , end = Token "]" ExpectingArrayEnd
-            , spaces = spaces
-            , item = expecting ExpectingExpression <| lazy (\_ -> expression)
-            , trailing = Forbidden
-            }
+    inContext InArray <|
+        succeed JsArray
+            |. symbol "[" ExpectingArrayStart
+            |. spaces
+            |= expecting ExpectingArrayElementOrArrayEnd
+                (oneOf
+                    [ lazy (\_ -> expression |> andThen (\e -> loop [ e ] arrayHelp))
+                    , symbol "]" ExpectingArrayStart |> map (\_ -> [])
+                    ]
+                )
+
+
+arrayHelp revElements =
+    succeed identity
+        |. spaces
+        |= expecting ExpectingCommaOrArrayEnd
+            (oneOf
+                [ succeed (\e -> Loop <| e :: revElements)
+                    |. symbol "," Unreachable
+                    |. spaces
+                    |= expecting ExpectingExpression expression
+                , succeed (Done <| List.reverse revElements) |. symbol "]" ExpectingArrayEnd
+                ]
+            )
 
 
 identifier : Parser String
@@ -409,22 +611,18 @@ boolean =
 
 number : Parser Expression
 number =
-    Parser.Advanced.number
-        { int = Ok (toFloat >> Number)
-        , hex = Ok (toFloat >> Number)
-        , octal = Ok (toFloat >> Number)
-        , binary = Ok (toFloat >> Number)
-        , float = Ok Number
-        , invalid = Never
-        , expecting = ExpectingNumber
-        }
+    succeed (Number 1)
+        |. oneOf
+            [ symbol "0" Unreachable
+            ]
 
 
 string : Parser Expression
 string =
-    succeed JsString
-        |. symbol "\"" (ExpectingStringStart DoubleQuote)
-        |= loop [] stringHelp
+    inContext (InString DoubleQuote) <|
+        succeed JsString
+            |. symbol "\"" (ExpectingStringStart DoubleQuote)
+            |= loop [] stringHelp
 
 
 specialChar : String -> Parser ()
@@ -434,24 +632,32 @@ specialChar c =
 
 stringHelp : List String -> Parser (Step (List String) String)
 stringHelp revChunks =
-    oneOf
-        [ succeed (\chunk -> Loop (chunk :: revChunks))
-            |. symbol "\\" ExpectingEscapeStart
-            |= oneOf
-                [ map (\_ -> "\n") (specialChar "n")
-                , map (\_ -> "\t") (specialChar "t")
-                , map (\_ -> "\u{000D}") (specialChar "r")
-                , succeed String.fromChar
-                    |. symbol "u{" ExpectingUnicodeStart
-                    |= unicode
-                    |. symbol "}" ExpectingUnicodeEnd
-                ]
-        , symbol "\"" (ExpectingStringEnd DoubleQuote)
-            |> map (\_ -> Done (String.join "" (List.reverse revChunks)))
-        , chompWhile isUninteresting
-            |> getChompedString
-            |> map (\chunk -> Loop (chunk :: revChunks))
-        ]
+    expecting (ExpectingStringEnd DoubleQuote) <|
+        oneOf
+            [ succeed (\chunk -> Loop (chunk :: revChunks))
+                |. symbol "\\" ExpectingEscapeStart
+                |= oneOf
+                    [ map (\_ -> "\n") (specialChar "n")
+                    , map (\_ -> "\t") (specialChar "t")
+                    , map (\_ -> "\u{000D}") (specialChar "r")
+                    , succeed String.fromChar
+                        |. symbol "u{" ExpectingUnicodeStart
+                        |= unicode
+                        |. symbol "}" ExpectingUnicodeEnd
+                    ]
+            , symbol "\"" (ExpectingStringEnd DoubleQuote)
+                |> map (\_ -> Done (String.join "" (List.reverse revChunks)))
+            , chompWhile isUninteresting
+                |> getChompedString
+                |> andThen
+                    (\chunk ->
+                        if chunk == "" then
+                            problem (ExpectingStringEnd DoubleQuote)
+
+                        else
+                            succeed <| Loop (chunk :: revChunks)
+                    )
+            ]
 
 
 isUninteresting : Char -> Bool
@@ -478,7 +684,7 @@ codeToChar str =
         code =
             String.foldl addHex 0 str
     in
-    if 4 <= length && length <= 6 then
+    if 4 > length && length > 6 then
         problem <| UnicodeProblem "code point must have between 4 and 6 digits"
 
     else if 0 <= code && code <= 0x0010FFFF then
@@ -515,14 +721,16 @@ factor =
 
 
 callandPropertyAccess expr =
-    oneOf
-        [ map (\args -> Loop <| Call expr args) callArgs
-        , succeed (\property -> Loop <| PropertyAccess { object = expr, property = property })
-            |. symbol "[" ExpectingMemberStart
-            |= lazy (\_ -> expression)
-            |. symbol "]" ExpectingMemberEnd
-        , map (\_ -> Done expr) (succeed ())
-        ]
+    succeed identity
+        |. spaces
+        |= oneOf
+            [ map (\args -> Loop <| Call expr args) callArgs
+            , succeed (\property -> Loop <| PropertyAccess { object = expr, property = property })
+                |. symbol "[" ExpectingMemberStart
+                |= lazy (\_ -> expression)
+                |. symbol "]" ExpectingMemberEnd
+            , map (\_ -> Done expr) (succeed ())
+            ]
 
 
 expression : Parser Expression
@@ -536,19 +744,23 @@ expressionHelp revOps expr =
     succeed identity
         |. spaces
         |= oneOf
-            [ succeed Tuple.pair
-                |= operator
-                |. spaces
-                |= factor
-                |> andThen (\( op, newExpr ) -> expressionHelp (( expr, op ) :: revOps) newExpr)
+            [ binaryOperators
+                |> andThen
+                    (\op ->
+                        succeed identity
+                            |. spaces
+                            |= expecting (ExpectingRightBinaryOperand op) factor
+                            |> andThen (\newExpr -> expressionHelp (( expr, op ) :: revOps) newExpr)
+                            |> inContext InBinary
+                    )
             , succeed (\c a -> ConditionalExpression { test = expr, consequent = c, alternate = a })
                 |. symbol "?" ExpectingTernaryLeft
                 |. spaces
-                |= lazy (\_ -> expression)
+                |= expecting ExpectingTernaryConsequent (lazy (\_ -> expression))
                 |. spaces
                 |. symbol ":" ExpectingTernaryRight
                 |. spaces
-                |= lazy (\_ -> expression)
+                |= expecting ExpectingTernaryAlternative (lazy (\_ -> expression))
             , lazy (\_ -> succeed (finalize revOps [] [ expr ]))
             ]
 
@@ -605,27 +817,72 @@ precedences =
     ]
 
 
-parseBinOp constructor op =
-    succeed constructor |. symbol op (ExpectingBinary constructor)
+parseBinOp op =
+    succeed op |. symbol (binaryOperatorToString op) (ExpectingBinary op)
 
 
-operator : Parser BinaryOperator
-operator =
+binaryOperatorToString binOp =
+    case binOp of
+        TimesOp ->
+            "*"
+
+        DivideOp ->
+            "/"
+
+        RemainderOp ->
+            "%"
+
+        PlusOp ->
+            "+"
+
+        MinusOp ->
+            "-"
+
+        EqualsOp ->
+            "==="
+
+        NotEqualsOp ->
+            "!=="
+
+        LessThanEqualOp ->
+            "<="
+
+        LessThanOp ->
+            "<"
+
+        GreaterThanEqualOp ->
+            ">="
+
+        GreaterThanOp ->
+            ">"
+
+        AssignmentOp ->
+            "="
+
+        OrOp ->
+            "||"
+
+        AndOp ->
+            "&&"
+
+
+binaryOperators : Parser BinaryOperator
+binaryOperators =
     oneOf
-        [ parseBinOp TimesOp "*"
-        , parseBinOp DivideOp "/"
-        , parseBinOp RemainderOp "%"
-        , parseBinOp PlusOp "+"
-        , parseBinOp MinusOp "-"
-        , parseBinOp EqualsOp "==="
-        , parseBinOp NotEqualsOp "!=="
-        , parseBinOp LessThanEqualOp "<="
-        , parseBinOp LessThanOp "<"
-        , parseBinOp GreaterThanEqualOp ">="
-        , parseBinOp GreaterThanOp ">"
-        , parseBinOp AssignmentOp "="
-        , parseBinOp OrOp "||"
-        , parseBinOp AndOp "&&"
+        [ parseBinOp TimesOp
+        , parseBinOp DivideOp
+        , parseBinOp RemainderOp
+        , parseBinOp PlusOp
+        , parseBinOp MinusOp
+        , parseBinOp EqualsOp
+        , parseBinOp NotEqualsOp
+        , parseBinOp LessThanEqualOp
+        , parseBinOp LessThanOp
+        , parseBinOp GreaterThanEqualOp
+        , parseBinOp GreaterThanOp
+        , parseBinOp AssignmentOp
+        , parseBinOp OrOp
+        , parseBinOp AndOp
         ]
 
 
@@ -675,3 +932,232 @@ finalize xs opStack stack =
 
         _ ->
             Null
+
+
+message : DeadEnd -> String
+message err =
+    (String.fromInt err.row ++ ":" ++ String.fromInt err.col)
+        ++ (": " ++ problemToString err.problem)
+
+
+contextToString : Context -> String
+contextToString context =
+    case context of
+        InArray ->
+            "array"
+
+        InMultiline ->
+            "multiline comment"
+
+        InString DoubleQuote ->
+            "string starting with `\"`"
+
+        BeforeFunctionDeclaration ->
+            "function declaration"
+
+        InFunctionDeclaration id ->
+            "function declaration of `" ++ id ++ "`"
+
+        InArrow ->
+            "lambda expression body"
+
+        InReturn ->
+            "return statement"
+
+        InExpressionStatement ->
+            "expression statement"
+
+        InBinary ->
+            "binary expression"
+
+        InIf If ->
+            "if statement"
+
+        InIf ElseIf ->
+            "else if statement"
+
+        InBlock ->
+            "block statement"
+
+        _ ->
+            Debug.toString context
+
+
+problemToString : Problem -> String
+problemToString problem =
+    case problem of
+        ExpectingArrayElementOrArrayEnd ->
+            "Expecting first array element or `]`"
+
+        ExpectingCommaOrArrayEnd ->
+            "Expecting `,` or `]`"
+
+        ExpectingEnd ->
+            "Expecting another statement or end of program"
+
+        ExpectingMultiCommentEnd ->
+            "Expecting the closing `*/`"
+
+        ExpectingIdentifier ->
+            "Expecting a name"
+
+        ExpectingExpressionOrBlock ->
+            "Expecting an expression or a block statement"
+
+        ExpectingKeyword k ->
+            "Expecting `" ++ k ++ "`"
+
+        ExpectingNoLineTerminator AfterReturn ->
+            "Line breaks are not allowed after `return`"
+
+        ExpectingNoLineTerminator BetweenParamsAndArrow ->
+            "Line breaks are not allowed between the lambda expression parameters and the `=>`"
+
+        ExpectingSemi _ ->
+            "A `;` is missing"
+
+        ExpectingIfTest _ ->
+            "Expecting the test condition"
+
+        ExpectingRightBinaryOperand op ->
+            "Expecting an expression on the right of the operator `" ++ binaryOperatorToString op ++ "` operator"
+
+        ExpectingNoSemicolon ->
+            "The `;` is not allowed"
+
+        LocatedAt _ p ->
+            problemToString p
+
+        ExpectingLParen _ ->
+            "Expecting a `(`"
+
+        ExpectingRParen _ ->
+            "Expecting a `)`"
+
+        ExpectingIfConsequent _ ->
+            "Expecting the consequent block"
+
+        ExpectingBlockStart ->
+            "Expecting a `{`"
+
+        ExpectingBlockEnd ->
+            "Expecting a `}`"
+
+        ExpectingIfOrBlock ->
+            "Expecting `else if` or the else block"
+
+        ExpectingStringEnd DoubleQuote ->
+            "Expecting the closing `\"`"
+
+        ExpectingExpression ->
+            "Expecting an expression"
+
+        _ ->
+            Debug.toString problem
+
+
+simplifyContexts : List { a | context : Context, row : b, col : c } -> List { a | context : Context, row : b, col : c }
+simplifyContexts contexts =
+    case contexts of
+        [] ->
+            []
+
+        _ :: [] ->
+            contexts
+
+        a :: b :: rest ->
+            case ( a.context, b.context ) of
+                ( InIf ElseIf, InIf If ) ->
+                    simplifyContexts <| a :: rest
+
+                ( InIf ElseIf, InIf ElseIf ) ->
+                    simplifyContexts <| a :: rest
+
+                ( InFunctionDeclaration _, BeforeFunctionDeclaration ) ->
+                    { a | row = b.row, col = b.col } :: simplifyContexts rest
+
+                _ ->
+                    a :: List.take 1 (simplifyContexts (b :: rest))
+
+
+dump : String -> DeadEnd -> List String
+dump input err =
+    let
+        simplifiedContextStack =
+            simplifyContexts err.contextStack
+    in
+    ("Error:" ++ message err)
+        :: List.map
+            (\ctx ->
+                ("  for the " ++ contextToString ctx.context ++ " starting at " ++ String.fromInt ctx.row)
+                    ++ (":" ++ String.fromInt ctx.col)
+            )
+            simplifiedContextStack
+        ++ ("" :: dumpCodeSnippet input { err | contextStack = simplifiedContextStack })
+
+
+realLocation deadEnd =
+    case deadEnd.problem of
+        LocatedAt pos _ ->
+            pos
+
+        _ ->
+            ( deadEnd.row, deadEnd.col )
+
+
+dumpCodeSnippet : String -> DeadEnd -> List String
+dumpCodeSnippet input deadEnd =
+    let
+        ( deadEndRow, deadEndCol ) =
+            realLocation deadEnd
+
+        range =
+            case deadEnd.contextStack of
+                [] ->
+                    { startRow = deadEndRow
+                    , startCol = deadEndCol
+                    }
+
+                ctx :: [] ->
+                    { startRow = ctx.row
+                    , startCol = ctx.col
+                    }
+
+                _ :: ctx :: _ ->
+                    { startRow = ctx.row
+                    , startCol = ctx.col
+                    }
+
+        strRows =
+            { start = String.fromInt range.startRow
+            , end = String.fromInt deadEndRow
+            }
+
+        lineNoWidth =
+            Basics.max (String.length strRows.start) (String.length strRows.end)
+
+        sourceSnippet =
+            String.lines input
+                |> List.drop (range.startRow - 1)
+                |> List.take (deadEndRow - range.startRow + 1)
+                |> List.indexedMap
+                    (\i ln ->
+                        String.padLeft lineNoWidth
+                            ' '
+                            (String.fromInt (range.startRow + i))
+                            ++ ("|" ++ ln)
+                    )
+
+        underline =
+            if List.isEmpty deadEnd.contextStack then
+                String.repeat (lineNoWidth + deadEndCol) " " ++ "^"
+
+            else if range.startRow == deadEndRow then
+                String.repeat (lineNoWidth + range.startCol) " "
+                    ++ (String.repeat (deadEndCol - range.startCol) "~" ++ "^")
+
+            else
+                String.repeat lineNoWidth " "
+                    ++ ("+" ++ String.repeat (deadEndCol - 1) "~" ++ "^")
+    in
+    sourceSnippet ++ [ underline ]
